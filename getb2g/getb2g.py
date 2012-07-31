@@ -9,7 +9,7 @@ import urllib2
 
 _RELEASE_URI = "https://releases.mozilla.com"
 _B2G_LATEST = _RELEASE_URI + "/b2g/latest"
-_CHUNK_SIZE = 16384
+_CHUNK_SIZE = 32768 
 
 def find_url(user, password, device):
     """
