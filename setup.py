@@ -10,6 +10,7 @@ PACKAGE_NAME = "getb2g"
 PACKAGE_VERSION = "1.0"
 
 desc = """Get the latest B2G nightly builds for a specific device"""
+deps = ['BeautifulSoup4']
 # take description from README
 here = os.path.dirname(os.path.abspath(__file__))
 try:
@@ -27,6 +28,11 @@ setup(name=PACKAGE_NAME,
       license='MPL 1.1/GPL 2.0/LGPL 2.1',
       packages=find_packages(exclude=['legacy']),
       zip_safe=False,
+      install_requires=deps,
+      entry_points="""
+      [console_scripts]
+      getb2g = getb2g:cli
+      """,
       platforms =['Any'],
       classifiers=['Development Status :: 4 - Beta',
                    'Environment :: Console',
