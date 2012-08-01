@@ -26,8 +26,11 @@ def find_url(user, password, device):
 
     data = urllib2.urlopen(_B2G_LATEST)
     soup = BeautifulSoup(data.read())
-    # ignore trunk builds
-    link = soup.find_all('a', href=lambda x: device in x and 'trunk' not in x)[0]
+    # get trunk build if it exists 
+    try:
+        link = soup.find_all('a', href=lambda x: device in x and 'trunk' in x)[0]
+    except:
+        link = soup.find_all('a', href=lambda x: device in x)[0]
     return _B2G_LATEST + '/' + link['href']
 
 def _chunk_report(url, bytes_so_far, total_size):
