@@ -2,8 +2,12 @@
 Runs each manifest in the root reftest.list separately and saves the log files
 Needs to be run from the objdir/_tests/reftest directory
 """
-from bs4 import BeautifulSoup
+import sys
+import os
+sys.path.append(os.getcwd())
+
 from b2gautomation import B2GRemoteAutomation
+from bs4 import BeautifulSoup
 from logparser import LogParser
 from time import sleep
 from runreftestb2g import B2GOptions
@@ -11,8 +15,6 @@ import autolog
 import mozlog
 import runreftestb2g
 import shutil
-import sys
-import os
 import urllib2
 import uuid
 
@@ -49,7 +51,7 @@ def run(manifests, output_dir, args, post_to_autolog=False):
     # get revision
     default = open(os.path.join(b2g_path, 'default.xml'), 'r')
     soup = BeautifulSoup(default.read())
-    mc = soup.find_all('project', attrs={'name':'mozilla-central'})[0]
+    mc = soup.find_all('project', attrs={'name':'releases-mozilla-central'})[0]
     revision = mc['revision']
     
     with open(manifests, "r") as manifest_file:
@@ -112,7 +114,7 @@ class ReftestRunnerOptions(B2GOptions):
                             help='Directory to store the log files')
 
     def parse_args(self, args):
-        opt, arguments = B2GOptions.parse_args(args)
+        opt, arguments = B2GOptions.parse_args(self, args)
         if not opt.manifests:
             self.error("must specify --manifest-list")
         return opt, arguments
@@ -143,4 +145,4 @@ def cli(args=sys.argv[1:]):
  
 
 if __name__== '__main__':
-    sys.exit(run(sys.argv[1:]))
+    sys.exit(cli())
