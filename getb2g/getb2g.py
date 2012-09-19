@@ -38,10 +38,10 @@ def find_url(user, password, keys, date=None):
         return None
     return uri + '/' + link['href']
 
-def _chunk_report(url, bytes_so_far, total_size):
+def _chunk_report(bytes_so_far, total_size):
     percent = float(bytes_so_far) / total_size
     percent = round(percent*100, 2)
-    sys.stdout.write("\rDownloading '%s' (%0.0f%%)" % (url, percent))
+    sys.stdout.write("\rDownloading (%0.0f%%)" % percent)
 
     if bytes_so_far >= total_size:
         sys.stdout.write('\n')
@@ -66,6 +66,9 @@ def save_as(user, password, keys, savepath, date=None, silent=False):
 
     savepath = os.path.realpath(savepath)
     outfile = open(savepath, "wb")
+
+    if not silent:
+        print url
     while True:
         chunk = response.read(_CHUNK_SIZE)
         if not chunk:
@@ -75,7 +78,7 @@ def save_as(user, password, keys, savepath, date=None, silent=False):
         outfile.write(chunk)
 
         if not silent:
-            _chunk_report(url, bytes_so_far, total_size)
+            _chunk_report(bytes_so_far, total_size)
 
     outfile.close()
     return savepath
