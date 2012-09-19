@@ -4,15 +4,18 @@ with automated testing in mind, but can be used for anything that requires a B2G
 
 # Usage
 
-Simply specify the username, password and device to get the latest nightly build. Device is one of: 
-emulator-arm, emulator-x86, nexus-s, otoro, sgs2.
+Simply specify the username, password, a list of keywords and date (optional) to get the latest nightly build.
 
 From command line:
 
-    getb2g --user <username> --device <device> --output-file <path_to_save_zip>
+    getb2g --user <username> --key <keyword1> --key <keyword2> --output-file <path_to_save_zip> --date <YYYY-MM-DD>
 
 From script:
 
     import getb2g
-    print getb2g.find_url(user, passwd, device)         # prints the url
-    print getb2g.save_as(user, passwd, device, outfile) # prints full path to downloaded zip
+    print getb2g.find_url(user, passwd, keys, date=None)                        # prints the url
+    print getb2g.save_as(user, passwd, keys, savepath, date=None, silent=False) # prints full path to downloaded zip
+
+For example to get otoro eu builds from the 19th of September, run:
+
+    getb2g --user <username> --key otoro --key eu --date 2012-09-19 -o b2g.zip
