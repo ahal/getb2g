@@ -11,7 +11,7 @@ _RELEASE_URI = "https://releases.mozilla.com/b2g/"
 _B2G_LATEST = "latest"
 _CHUNK_SIZE = 32768
 
-def find_url(user, password, keys, date=None):
+def find_url(user, password, keys, date=None, silent=False):
     """
     Returns the url of the build specified by keys or None.
     """
@@ -29,7 +29,12 @@ def find_url(user, password, keys, date=None):
     else:
         uri = _RELEASE_URI + date
 
-    data = urllib2.urlopen(uri)
+    try:
+        data = urllib2.urlopen(uri)
+    except urllib2.HTTPError, e:
+        if not silent:
+            print "Failed to open uri: %s" % e
+        return None
     soup = BeautifulSoup(data.read())
     # get trunk build if it exists
     try:
@@ -54,7 +59,7 @@ def save_as(user, password, keys, savepath, date=None, silent=False):
 
     If no builds were found, returns None
     """
-    url = find_url(user, password, keys, date=date)
+    url = find_url(user, password, keys, date=date, silent=silent)
     if url is None:
         if not silent:
             print "Could not find build matching [%s]" % ", ".join(keys)
@@ -111,10 +116,12 @@ def cli(args=sys.argv[1:]):
     password = getpass.getpass("Password for %s:" % opt.user)
 
     if not opt.outfile:
-        print find_url(opt.user, password, opt.keys, date=opt.date)
+        url = find_url(opt.user, password, opt.keys, date=opt.date)
     else:
-        print save_as(opt.user, password, opt.keys, opt.outfile, date=opt.date)
-
+        url = save_as(opt.user, password, opt.keys, opt.outfile, date=opt.date)
+    
+    if url is not None:
+        print url
 
 if __name__ == '__main__':
     sys.exit(cli())

@@ -7,7 +7,7 @@ import os
 import sys
 
 PACKAGE_NAME = "getb2g"
-PACKAGE_VERSION = "1.2"
+PACKAGE_VERSION = "1.3"
 
 desc = """Get the latest B2G nightly builds for a specific device"""
 deps = ['BeautifulSoup4']
