@@ -1,9 +1,7 @@
 from bs4 import BeautifulSoup
-import ctypes
 import getpass
 import optparse
 import os
-import struct
 import sys
 import urllib2
 import urlparse
