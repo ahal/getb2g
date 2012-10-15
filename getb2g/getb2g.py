@@ -6,6 +6,7 @@ import os
 import struct
 import sys
 import urllib2
+import urlparse
 
 _RELEASE_URI = "https://releases.mozilla.com/b2g/"
 _B2G_LATEST = "latest"
@@ -36,7 +37,6 @@ def find_url(user, password, keys, date=None, silent=False):
             print "Failed to open uri: %s" % e
         return None
     soup = BeautifulSoup(data.read())
-    # get trunk build if it exists
     try:
         link = soup.find_all('a', href=lambda x: len(keys) == len([k for k in keys if k in x]))[0]
     except:
@@ -52,9 +52,9 @@ def _chunk_report(bytes_so_far, total_size):
         sys.stdout.write('\n')
     sys.stdout.flush()
 
-def save_as(user, password, keys, savepath, date=None, silent=False):
+def save_as(user, password, keys, savepath=None, date=None, silent=False):
     """
-    Finds the url of the build specified by device
+    Finds the url of the build specified by keys
     and saves it to savepath.
 
     If no builds were found, returns None
@@ -64,6 +64,11 @@ def save_as(user, password, keys, savepath, date=None, silent=False):
         if not silent:
             print "Could not find build matching [%s]" % ", ".join(keys)
         return None
+
+    if savepath is None:
+        path = urlparse.urlsplit(url).path
+        savepath = path[path.rfind('/')+1:]
+
 
     response = urllib2.urlopen(url)
     total_size = int(response.info().getheader('Content-Length').strip())
@@ -105,6 +110,10 @@ def cli(args=sys.argv[1:]):
                       action="store", default=None,
                       help="Date of the nightly to download in the format: "
                            "YYYY-MM-DD")
+    parser.add_option("--print-only", dest="ponly",
+                      action="store_true", default=False,
+                      help="If specified, the url will be printed to stdout "
+                           "but nothing will be downloaded")
 
     opt, arguments = parser.parse_args(args)
 
@@ -115,11 +124,11 @@ def cli(args=sys.argv[1:]):
 
     password = getpass.getpass("Password for %s:" % opt.user)
 
-    if not opt.outfile:
+    if opt.ponly:
         url = find_url(opt.user, password, opt.keys, date=opt.date)
     else:
-        url = save_as(opt.user, password, opt.keys, opt.outfile, date=opt.date)
-    
+        url = save_as(opt.user, password, opt.keys, savepath=opt.outfile, date=opt.date)
+
     if url is not None:
         print url
 
