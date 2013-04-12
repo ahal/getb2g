@@ -1,134 +1,69 @@
-from bs4 import BeautifulSoup
-import getpass
+#!/usr/bin/env python
+"""GetB2G is a module designed to set up everything you need
+to run B2G builds and tests in one convenient directory. You 
+can run with no additional arguments to be dropped into an 
+interactive session designed to help figure out what you need.
+"""
+
 import optparse
 import os
 import sys
-import urllib2
-import urlparse
 
-_RELEASE_URI = "https://releases.mozilla.com/b2g/"
-_B2G_LATEST = "latest"
-_CHUNK_SIZE = 32768
+from base import valid_resources
+from prompt import prompt_resources 
+from request import Request
 
-def find_url(user, password, keys, date=None, silent=False):
-    """
-    Returns the url of the build specified by keys or None.
-    """
-    # install http basic auth opener
-    auth_handler = urllib2.HTTPBasicAuthHandler()
-    auth_handler.add_password(realm='B2G Builds',
-                              uri=_RELEASE_URI,
-                              user=user,
-                              passwd=password)
-    opener = urllib2.build_opener(auth_handler)
-    urllib2.install_opener(opener)
-
-    if not date:
-        uri = _RELEASE_URI + _B2G_LATEST
-    else:
-        uri = _RELEASE_URI + date
-
-    try:
-        data = urllib2.urlopen(uri)
-    except urllib2.HTTPError, e:
-        if not silent:
-            print "Failed to open uri: %s" % e
-        return None
-    soup = BeautifulSoup(data.read())
-    try:
-        link = soup.find_all('a', href=lambda x: len(keys) == len([k for k in keys if k in x]))[0]
-    except:
-        return None
-    return uri + '/' + link['href']
-
-def _chunk_report(bytes_so_far, total_size):
-    percent = float(bytes_so_far) / total_size
-    percent = round(percent*100, 2)
-    sys.stdout.write("\rDownloading (%0.0f%%)" % percent)
-
-    if bytes_so_far >= total_size:
-        sys.stdout.write('\n')
-    sys.stdout.flush()
-
-def save_as(user, password, keys, savepath=None, date=None, silent=False):
-    """
-    Finds the url of the build specified by keys
-    and saves it to savepath.
-
-    If no builds were found, returns None
-    """
-    url = find_url(user, password, keys, date=date, silent=silent)
-    if url is None:
-        if not silent:
-            print "Could not find build matching [%s]" % ", ".join(keys)
-        return None
-
-    if savepath is None:
-        path = urlparse.urlsplit(url).path
-        savepath = path[path.rfind('/')+1:]
-
-
-    response = urllib2.urlopen(url)
-    total_size = int(response.info().getheader('Content-Length').strip())
-    bytes_so_far = 0
-
-    savepath = os.path.realpath(savepath)
-    outfile = open(savepath, "wb")
-
-    if not silent:
-        print url
-    while True:
-        chunk = response.read(_CHUNK_SIZE)
-        if not chunk:
-             break
-
-        bytes_so_far += len(chunk)
-        outfile.write(chunk)
-
-        if not silent:
-            _chunk_report(bytes_so_far, total_size)
-
-    outfile.close()
-    return savepath
+def build_request(resources, metadata={}):
+    request = Request()
+    for resource in resources:
+        request.add_resource(resource, metadata)
+    request.dispatch()
 
 def cli(args=sys.argv[1:]):
-    parser = optparse.OptionParser(usage="%prog [options]")
-    parser.add_option("-u", "--user", dest="user",
-                      action="store", default=getpass.getuser(),
-                      help="Username for the b2g nightly releases")
-    parser.add_option("--key", dest="keys",
-                      action="append", default=None,
-                      help="List of keywords to use for finding which "
-                           " build to get. First build which matches all is chosen")
-    parser.add_option("-o", "--output-file", dest="outfile",
-                      action="store", default=None,
-                      help="File path to save the build. If not specified, "
-                           "the URL will be printed to stdout")
-    parser.add_option("--date", dest="date",
-                      action="store", default=None,
-                      help="Date of the nightly to download in the format: "
-                           "YYYY-MM-DD")
-    parser.add_option("--print-only", dest="ponly",
-                      action="store_true", default=False,
-                      help="If specified, the url will be printed to stdout "
-                           "but nothing will be downloaded")
+    parser = optparse.OptionParser(usage='%prog [options]', description=__doc__)
 
-    opt, arguments = parser.parse_args(args)
+    parser.add_option('-d', '--workdir', dest='workdir',
+                      action='store', default=None,
+                      help='Set up everything in this directory')
+    parser.add_option('--no-prompt', dest='prompt_disabled',
+                      action='store_true', default=False,
+                      help='Never prompt me for any additional '
+                           'information. If vital information is missing, '
+                           'raise an exception instead.')
+    parser.add_option('--damnit', dest='damnit',
+                      action='store_true', default=False,
+                      help='Just give me something that I can use to test B2G damnit!')
+    for resource in valid_resources['all']:
+        resource = resource.replace('_', '-')
+        parser.add_option('--prepare-%s' % resource, dest=resource,
+                          action='store_true', default=False,
+                          help='Do whatever it takes to set up %s' % resource)
+    parser.add_option('-m', '--metadata', dest='metadata',
+                      action='append', default=[],
+                      help='Append a piece of metadata in the form <key>=<value>. ' 
+                           'Attempt to use this metadata wherever it makes sense. '
+                           'Store values of duplicate keys in a list. E.g --metadata '
+                           'user=foo --metadata user=bar --metadata branch=mozilla-central')
+    options, args = parser.parse_args(args)
 
-    # verify options
-    if not opt.keys:
-        parser.error("Must specify at least one --key")
-        return 1
+    metadata = {}
+    for data in options.metadata:
+        k, v = data.split('=', 1)
+        if k in metadata:
+            if not isinstance(metadata[k], list):
+                metadata[k] = [metadata[k]]
+            metadata[k].append(v)
+        else:
+            metadata[k] = v
+    
+    if options.damnit:
+        resources = ('emulator', 'symbols', 'busybox', 'tests', 'minidump_stackwalk')
+        return build_request(resources, metadata)
 
-    password = getpass.getpass("Password for %s:" % opt.user)
-
-    if opt.ponly:
-        url = find_url(opt.user, password, opt.keys, date=opt.date)
-    else:
-        url = save_as(opt.user, password, opt.keys, savepath=opt.outfile, date=opt.date)
-
-    if url is not None:
-        print url
+    resources = [r for r in valid_resources['all'] if getattr(options, r, False)]
+    if not options.prompt_disabled:
+        resources = prompt_resources(resources)
+    build_request(resources, metadata)
 
 if __name__ == '__main__':
     sys.exit(cli())

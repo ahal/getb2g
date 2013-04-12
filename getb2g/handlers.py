@@ -21,7 +21,7 @@ class TinderboxHandler(Base, GeckoBase, SymbolsBase, TestBase):
     """
     _base_url = 'http://ftp-scl3.mozilla.com/pub/mozilla.org/b2g/tinderbox-builds/'
 
-    def __init__(self, url = None, branch='mozilla-central'):
+    def __init__(self, url=None, branch='mozilla-central'):
         super(TinderboxHandler, self).__init__()
         self._url = url
         self.branch = branch
@@ -68,7 +68,7 @@ class TinderboxHandler(Base, GeckoBase, SymbolsBase, TestBase):
     def prepare_gecko(self, url=None):
         url = url or self.url
         url = self._get_resource_url(url, lambda x: x.string.beginswith('b2g') and
-                    `                                     x.string.endswith('.tar.gz'))
+                                                         x.string.endswith('.tar.gz'))
         # TODO download to output dir
         self.download_file(url, 'gecko.tar.gz')
         mozfile.extract('gecko.tar.gz', 'gecko')
@@ -128,7 +128,7 @@ class ReleaseMOHandler(Base, EmulatorBase):
             return -1
                 
         def __str__(self):
-            return "%s%s%s%s%s" % (self.year, self.format_char, self.month
+            return "%s%s%s%s%s" % (self.year, self.format_char, self.month,
                                     self.format_char, self.day)
 
     def _get_date_from_string(self, string, format_char='-'):
@@ -181,7 +181,7 @@ class ReleaseMOHandler(Base, EmulatorBase):
                 log.warning("Failed to find a recent emulator build on releases.mozilla.com")
         elif not url:
             #TODO raise
-            log.warning("Failed to find an emulator build for date '%s'" % date
+            log.warning("Failed to find an emulator build for date '%s'" % date)
         else:
             self.download_file(url, 'emulator.zip')
             mozfile.extract('emulator.zip', 'emulator')

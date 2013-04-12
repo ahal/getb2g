@@ -52,9 +52,7 @@ class Base(object):
         for resource, kwargs in request.resources:
             for name, ref in methods:
                 if name == 'prepare_%s' % resource:
-                    t_args = kwargs.keys()
-                    ins_args = inspect.getargspec(ref)
-                    if set(t_args).issubset(set(ins_args[0])) and set(ins_args[0][:len(ins_args[3]) or len(ins_args[0])]).issubset(set(t_args)):
+                    if set(kwargs.keys()).issubset(set(inspect.getargspec(ref)[0])):
                         handled_resources.append((resource, kwargs))
         return handled_resources
 
@@ -64,15 +62,15 @@ class Base(object):
         Executes the specified request
         """
         handled_resources = cls.handled_resources(request)
-        for resource, args, kwargs in handled_resources:
+        for resource, kwargs in handled_resources:
             success = False
             try:
-                h = cls.__class__(**request.state)
-                success = getattr(h, 'prepare_%s' % resource)(*args, **kwargs)
+                h = cls(**request.state)
+                success = getattr(h, 'prepare_%s' % resource)(**kwargs)
             except:
                 traceback.print_exc()
             if success:
-                request.resources.remove((resource, args, kwargs))
+                request.resources.remove((resource, kwargs))
     
     def prepare_busybox(self, platform):
         """
@@ -150,7 +148,7 @@ class OtoroBase(object):
     prepare_otoro.groups = ['device']
 
 # inspect the abstract base classes and extract the valid resources
-for cls_name, cls in inspect.getmembers(sys.modules[__name__], inspect.isabstract):
+for cls_name, cls in inspect.getmembers(sys.modules[__name__], inspect.isclass):
     for name, method in inspect.getmembers(cls, inspect.ismethod):
         if name.startswith('prepare'):
             name = name[len('prepare_'):].lower() 
@@ -159,4 +157,4 @@ for cls_name, cls in inspect.getmembers(sys.modules[__name__], inspect.isabstrac
                 if group not in valid_resources:
                     valid_resources[group] = set([])
                 valid_resources[group].add(name)
-print "valid_resources: %s" % valid_resources
+print "valid_resources: %s" % valid_resources['all']
