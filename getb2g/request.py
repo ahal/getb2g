@@ -1,31 +1,20 @@
+from base import valid_resources
+from errors import InvalidResourceException
 from handlers import all_handlers
 
-__all__ = ('Request', 'InvalidResourceException', 'valid_resources')
-
-valid_resources = ('gecko',
-                   'emulator',
-                   'busybox',
-                   'minidump_stackwalk',
-                   'tests')
-
-class InvalidResourceException(Exception):
-    """The requested resource was not valid"""
-
-class IncompleteRequestException(Exception):
-    """The requested resource was not valid"""
+__all__ = ('Request', 'valid_resources')
 
 class Request(object):
     """Represents a set of actions to be performed"""
     resources = []
     state = {}
 
-    def add_resource(self, resource, args=None, kwargs=None):
-        args = args or []
+    def add_resource(self, resource, kwargs=None):
         kwargs = kwargs or {}
         if resource not in valid_resources:
             raise InvalidResourceException("The resource '%s' is not valid! Choose from: %s" %
                                                             (resource, ", ".join(valid_resources)))
-        self.resources.add((resource, args, kwargs))
+        self.resources.add((resource, kwargs))
 
     def dispatch(self, handlers=all_handlers):
         potential_handlers = []

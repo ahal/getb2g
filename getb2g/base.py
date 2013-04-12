@@ -1,17 +1,41 @@
 from abc import ABCMeta, abstractmethod
+import getpass
 import inspect
 import traceback
+import sys
 
-__all__ = ('Base', 'GeckoBase', 'SymbolsBase', 'EmulatorBase', 'TestBase')
+import mozinfo
+
+__all__ = ('Base', 'GeckoBase', 'SymbolsBase', 'EmulatorBase', 'TestBase', 'valid_resources')
+
+valid_resources = {'all': set([])}
+
 
 class Base(object):
     __metaclass__ = ABCMeta
 
-    @abstractmethod
-    def prompt_story(self):
+    def prompt_story(self, data=None):
         """
         Prompts the user to provide any additional missing information
         """
+        data = data or self.__dict__
+
+        # username and password
+        if data.username and not data.password:
+            print "No password found for user '%s'!" % data.username
+            options = {'1': 'Enter password',
+                       '2': 'Ignore username'}
+            while True:
+                print ['[%s] %s\n' % (k, v) for k, v in options.iteritems()]
+                option = raw_input("$ ")
+                if option in options.keys():
+                    break
+            if option == options.keys()[0]:
+                data.password = getpass.getpass()
+            elif option == options.keys()[1]:
+                data.username = None
+        return data
+                
 
     @classmethod 
     def handled_resources(cls, request):
@@ -25,15 +49,13 @@ class Base(object):
         # 3. all args in the callee without a default exist in the specified args
         handled_resources = []
         methods = inspect.getmembers(cls, inspect.ismethod)
-        for resource, args, kwargs in request.resources:
+        for resource, kwargs in request.resources:
             for name, ref in methods:
                 if name == 'prepare_%s' % resource:
-                    t_args = args
-                    t_args.extend(kwargs.keys())
+                    t_args = kwargs.keys()
                     ins_args = inspect.getargspec(ref)
-                    if set(t_args).issubset(set(ins_args[0])) and
-                            set(ins_args[0][:len(ins_args[3] or len(ins_args[0])]).issubset(set(t_args)):
-                        handled_resources.append((resource, args, kwargs))
+                    if set(t_args).issubset(set(ins_args[0])) and set(ins_args[0][:len(ins_args[3]) or len(ins_args[0])]).issubset(set(t_args)):
+                        handled_resources.append((resource, kwargs))
         return handled_resources
 
     @classmethod
@@ -51,6 +73,11 @@ class Base(object):
                 traceback.print_exc()
             if success:
                 request.resources.remove((resource, args, kwargs))
+    
+    def prepare_busybox(self, platform):
+        """
+        Returns the path of a busybox binary for the given platform
+        """
 
 
 class GeckoBase(object):
@@ -64,6 +91,8 @@ class GeckoBase(object):
 
 class SymbolsBase(object):
     __metaclass__ = ABCMeta
+    _default_minidump_stackwalk_url = 'https://hg.mozilla.org/build/tools/file/tip/breakpad/%s/minidump_stackwalk'
+
     @abstractmethod
     def prepare_symbols(self, *args, **kwargs):
         """
@@ -71,9 +100,26 @@ class SymbolsBase(object):
         for the given args
         """
 
-    def prepare_minidump_stackwalk(self):
+    def prepare_minidump_stackwalk(self, url=None):
         """
         Downloads the minidump stackwalk binaries if missing
+        """
+        if not url:
+            arch = '64' if mozinfo.bits == 64 else ''
+            if mozinfo.isLinux:
+                url = self._default_minidump_stackwalk_url % ('linux%s' % arch)
+            elif mozinfo.isMac:
+                url = self._default_minidump_stackwalk_url % ('osx%s' % arch)
+            elif mozinfo.isWin:
+                url = self._default_minidump_stackwalk_url % 'win32'
+        self.download_file(url, 'minidump_stackwalk')
+                
+class TestBase(object):
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def prepare_tests(self, *args, **kwargs):
+        """
+        Returns the path to an unzipped tests bundle
         """
 
 class EmulatorBase(object):
@@ -83,16 +129,34 @@ class EmulatorBase(object):
         """
         Returns the path to an unzipped emulator package
         """
-    
-    def prepare_busybox(self, platform):
-        """
-        Returns the path of a busybox binary for the given platform
-        """
+    prepare_emulator.groups = ['device']
 
-class TestBase(object):
+class UnagiBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
-    def prepare_tests(self, *args, **kwargs):
+    def prepare_unagi(self, *args, **kwargs):
         """
-        Returns the path to an unzipped tests bundle
+        Returns the path to an extracted unagi build 
         """
+    prepare_unagi.groups = ['device']
+
+class OtoroBase(object):
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def prepare_otoro(self, *args, **kwargs):
+        """
+        Returns the path to an extracted otoro build 
+        """
+    prepare_otoro.groups = ['device']
+
+# inspect the abstract base classes and extract the valid resources
+for cls_name, cls in inspect.getmembers(sys.modules[__name__], inspect.isabstract):
+    for name, method in inspect.getmembers(cls, inspect.ismethod):
+        if name.startswith('prepare'):
+            name = name[len('prepare_'):].lower() 
+            valid_resources['all'].add(name)
+            for group in getattr(method, 'groups', []):
+                if group not in valid_resources:
+                    valid_resources[group] = set([])
+                valid_resources[group].add(name)
+print "valid_resources: %s" % valid_resources
