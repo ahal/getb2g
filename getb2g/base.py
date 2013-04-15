@@ -1,41 +1,27 @@
 from abc import ABCMeta, abstractmethod
-import getpass
+from bs4 import BeautifulSoup
 import inspect
-import traceback
+import os
+import stat
 import sys
+import tempfile
+import traceback
 
+from mixins.download import DownloadMixin
 import mozinfo
+import mozlog
+log = mozlog.getLogger('GetB2G')
 
 __all__ = ('Base', 'GeckoBase', 'SymbolsBase', 'EmulatorBase', 'TestBase', 'valid_resources')
-
 valid_resources = {'all': set([])}
 
 
-class Base(object):
+class Base(DownloadMixin):
     __metaclass__ = ABCMeta
+    _default_busybox_url = 'http://busybox.net/downloads/binaries/latest/'
 
-    def prompt_story(self, data=None):
-        """
-        Prompts the user to provide any additional missing information
-        """
-        data = data or self.__dict__
-
-        # username and password
-        if data.username and not data.password:
-            print "No password found for user '%s'!" % data.username
-            options = {'1': 'Enter password',
-                       '2': 'Ignore username'}
-            while True:
-                print ['[%s] %s\n' % (k, v) for k, v in options.iteritems()]
-                option = raw_input("$ ")
-                if option in options.keys():
-                    break
-            if option == options.keys()[0]:
-                data.password = getpass.getpass()
-            elif option == options.keys()[1]:
-                data.username = None
-        return data
-                
+    def __init__(self, **kwargs):
+        self.data = kwargs
 
     @classmethod 
     def handled_resources(cls, request):
@@ -43,17 +29,12 @@ class Base(object):
         Returns a subset of the resources that this class is capable 
         of handling for a specified request
         """
-        # A resource can be handled iff
-        # 1. the handler contains a callee named 'prepare_resource'
-        # 2. the specified args all exist in the callee
-        # 3. all args in the callee without a default exist in the specified args
         handled_resources = []
         methods = inspect.getmembers(cls, inspect.ismethod)
-        for resource, kwargs in request.resources:
+        for resource in request.resources:
             for name, ref in methods:
                 if name == 'prepare_%s' % resource:
-                    if set(kwargs.keys()).issubset(set(inspect.getargspec(ref)[0])):
-                        handled_resources.append((resource, kwargs))
+                    handled_resources.append(resource)
         return handled_resources
 
     @classmethod
@@ -62,28 +43,41 @@ class Base(object):
         Executes the specified request
         """
         handled_resources = cls.handled_resources(request)
-        for resource, kwargs in handled_resources:
+        for resource in handled_resources:
             success = False
             try:
-                h = cls(**request.state)
-                success = getattr(h, 'prepare_%s' % resource)(**kwargs)
+                h = cls(**request.metadata)
+                getattr(h, 'prepare_%s' % resource)()
+                request.resources.remove(resource)
             except:
-                traceback.print_exc()
-            if success:
-                request.resources.remove((resource, kwargs))
+                log.debug(traceback.format_exc())
     
-    def prepare_busybox(self, platform):
+    def prepare_busybox(self):
         """
-        Returns the path of a busybox binary for the given platform
+        Downloads a busybox binary for the given platform
         """
+        url = self._default_busybox_url
+        platform = self.data.get('busybox_platform') or self.data.get('platform', 'armv6l')
 
+        doc = self.download_file(url, tempfile.mkstemp()[1])
+        soup = BeautifulSoup(open(doc, 'r'))
+        for link in soup.find_all('a'):
+            if 'busybox-%s' % platform in link['href']:
+                path = os.path.join(self.data['workdir'], 'busybox')
+                if os.path.isfile(path):
+                    os.remove(path)
+                file_name = self.download_file(url + link['href'], 'busybox')
+                os.chmod(file_name, stat.S_IEXEC)
+                break
+        else:
+            log.error("Couldn't find a busybox binary for platform '%s'" % platform)
 
 class GeckoBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
-    def prepare_gecko(self, *args, **kwargs):
+    def prepare_gecko(self):
         """
-        Returns path to an unzipped gecko directory
+        Downloads and extracts a gecko directory
         for the given args
         """
 
@@ -92,7 +86,7 @@ class SymbolsBase(object):
     _default_minidump_stackwalk_url = 'https://hg.mozilla.org/build/tools/file/tip/breakpad/%s/minidump_stackwalk'
 
     @abstractmethod
-    def prepare_symbols(self, *args, **kwargs):
+    def prepare_symbols(self):
         """
         Returns the path to an unzipped symbols directory
         for the given args
@@ -110,12 +104,13 @@ class SymbolsBase(object):
                 url = self._default_minidump_stackwalk_url % ('osx%s' % arch)
             elif mozinfo.isWin:
                 url = self._default_minidump_stackwalk_url % 'win32'
-        self.download_file(url, 'minidump_stackwalk')
-                
+        file_name = self.download_file(url, 'minidump_stackwalk')
+        os.chmod(file_name, stat.S_IEXEC)
+
 class TestBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
-    def prepare_tests(self, *args, **kwargs):
+    def prepare_tests(self):
         """
         Returns the path to an unzipped tests bundle
         """
@@ -123,7 +118,7 @@ class TestBase(object):
 class EmulatorBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
-    def prepare_emulator(self, *args, **kwargs):
+    def prepare_emulator(self):
         """
         Returns the path to an unzipped emulator package
         """
@@ -132,7 +127,7 @@ class EmulatorBase(object):
 class UnagiBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
-    def prepare_unagi(self, *args, **kwargs):
+    def prepare_unagi(self):
         """
         Returns the path to an extracted unagi build 
         """
@@ -141,7 +136,7 @@ class UnagiBase(object):
 class OtoroBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
-    def prepare_otoro(self, *args, **kwargs):
+    def prepare_otoro(self):
         """
         Returns the path to an extracted otoro build 
         """
@@ -157,4 +152,3 @@ for cls_name, cls in inspect.getmembers(sys.modules[__name__], inspect.isclass):
                 if group not in valid_resources:
                     valid_resources[group] = set([])
                 valid_resources[group].add(name)
-print "valid_resources: %s" % valid_resources['all']

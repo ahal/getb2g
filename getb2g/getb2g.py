@@ -12,18 +12,21 @@ import sys
 from base import valid_resources
 from prompt import prompt_resources 
 from request import Request
+import prompt
+import mozlog
+log = mozlog.getLogger('GetB2G')
 
 def build_request(resources, metadata={}):
-    request = Request()
+    request = Request(metadata=metadata)
     for resource in resources:
-        request.add_resource(resource, metadata)
+        request.add_resource(resource)
     request.dispatch()
 
 def cli(args=sys.argv[1:]):
     parser = optparse.OptionParser(usage='%prog [options]', description=__doc__)
 
     parser.add_option('-d', '--workdir', dest='workdir',
-                      action='store', default=None,
+                      action='store', default=os.path.join(os.getcwd(), 'b2g-workdir'),
                       help='Set up everything in this directory')
     parser.add_option('--no-prompt', dest='prompt_disabled',
                       action='store_true', default=False,
@@ -33,9 +36,13 @@ def cli(args=sys.argv[1:]):
     parser.add_option('--damnit', dest='damnit',
                       action='store_true', default=False,
                       help='Just give me something that I can use to test B2G damnit!')
+    parser.add_option('--log-level', dest='log_level', action='store',
+                      type='choice', default='INFO',
+                      choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                      help='Only print messages at this log level')
     for resource in valid_resources['all']:
-        resource = resource.replace('_', '-')
-        parser.add_option('--prepare-%s' % resource, dest=resource,
+        cmdlet = resource.replace('_', '-')
+        parser.add_option('--prepare-%s' % cmdlet, dest=resource,
                           action='store_true', default=False,
                           help='Do whatever it takes to set up %s' % resource)
     parser.add_option('-m', '--metadata', dest='metadata',
@@ -45,8 +52,13 @@ def cli(args=sys.argv[1:]):
                            'Store values of duplicate keys in a list. E.g --metadata '
                            'user=foo --metadata user=bar --metadata branch=mozilla-central')
     options, args = parser.parse_args(args)
+    log.setLevel(getattr(mozlog, options.log_level))
+    prompt.prompt_disabled = options.prompt_disabled
 
     metadata = {}
+    if not os.path.isdir(options.workdir):
+        os.makedirs(options.workdir)
+    metadata['workdir'] = options.workdir
     for data in options.metadata:
         k, v = data.split('=', 1)
         if k in metadata:
@@ -55,14 +67,16 @@ def cli(args=sys.argv[1:]):
             metadata[k].append(v)
         else:
             metadata[k] = v
-    
+   
     if options.damnit:
-        resources = ('emulator', 'symbols', 'busybox', 'tests', 'minidump_stackwalk')
+        resources = ('emulator', 'gecko', 'symbols', 'busybox', 'tests', 'minidump_stackwalk')
         return build_request(resources, metadata)
 
+    print options.minidump_stackwalk
     resources = [r for r in valid_resources['all'] if getattr(options, r, False)]
-    if not options.prompt_disabled:
-        resources = prompt_resources(resources)
+    print resources
+    resources = prompt_resources(resources)
+    print resources
     build_request(resources, metadata)
 
 if __name__ == '__main__':
