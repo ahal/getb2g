@@ -1,3 +1,6 @@
+import os
+import shutil
+
 from base import valid_resources
 from errors import InvalidResourceException, MultipleDeviceResourceException
 import handlers
@@ -19,9 +22,13 @@ class Request(object):
                                                             (resource, ", ".join(valid_resources['all'])))
         self.resources.append(resource)
         if resource in valid_resources['device']:
-            if hasattr(self.metadata, 'device'):
-                raise MultipleDeviceResourceException()
+            if 'device' in self.metadata:
+                raise MultipleDeviceResourceException(self.metadata['device'], resource)
             self.metadata['device'] = resource
+            self.metadata['workdir'] = os.path.join(self.metadata['workdir'], resource)
+            if os.path.isdir(self.metadata['workdir']):
+                shutil.rmtree(self.metadata['workdir'])
+            os.makedirs(self.metadata['workdir'])
 
     def dispatch(self):
         """

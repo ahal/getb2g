@@ -99,9 +99,8 @@ class ReleaseMOHandler(Base, EmulatorBase):
             log.warning("Failed to find an emulator build for date '%s'" % date)
             
         file_name = self.download_file(url, 'emulator.zip')
-        files = mozfile.extract(file_name)
-        os.remove(file_name)
-        extract_dir = os.path.join(self.metadata['workdir'], 'emulator')
+        extract_dir = os.path.join(self.metadata['workdir'], 'b2g-distro')
         if os.path.isdir(extract_dir):
             shutil.rmtree(extract_dir)
-        shutil.move(files[0], extract_dir)
+        mozfile.extract(file_name)
+        os.remove(file_name)

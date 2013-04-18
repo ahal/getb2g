@@ -30,11 +30,6 @@ def prompt_resources(valid_resources, resources=None):
         device = prompt("What target device are you building for?",
                         valid_resources['device'])
         resources.add(device)
-
-    for resource in valid_resources['all'].difference(valid_resources['device']).difference(resources):
-        if prompt("Do you want '%s'?" % resource) == 'y':
-            resources.add(resource)
-
     return resources
 
 def prompt_user_pass(url, user=None, password=None):
@@ -46,6 +41,6 @@ def prompt_user_pass(url, user=None, password=None):
 
     if not user or not password:
         if prompt("Do you have a user name and password for '%s'?" % url) == 'y':
-            user = raw_input("User name: ")
+            user = raw_input("Username: ")
             password = getpass.getpass()
     return (user, password) 

@@ -28,54 +28,48 @@ class PvtbuildsHandler(Base, UnagiBase, PandaBase, SymbolsBase, TinderboxMixin):
         os.remove(file_name)
 
     def prepare_panda(self):
-        panda_dir = os.path.join(self.metadata['workdir'], 'panda')
-        if os.path.isdir(panda_dir):
-            shutil.rmtree(panda_dir)
-        os.makedirs(panda_dir)
-
         url = self.get_resource_url(lambda x: x.string == 'boot.tar.bz2')
-        file_name = self.download_file(url, 'panda')
+        file_name = self.download_file(url)
         mozfile.extract(file_name)
         os.remove(file_name)
 
         url = self.get_resource_url(lambda x: x.string == 'system.tar.bz2')
-        file_name = self.download_file(url, 'panda')
+        file_name = self.download_file(url)
         mozfile.extract(file_name)
         os.remove(file_name)
 
         url = self.get_resource_url(lambda x: x.string == 'userdata.tar.bz2')
-        file_name = self.download_file(url, 'panda')
+        file_name = self.download_file(url)
         mozfile.extract(file_name)
         os.remove(file_name)
 
         url = self.get_resource_url(lambda x: x.string == 'gaia-tests.zip')
-        file_name = self.download_file(url, 'panda')
+        test_dir = os.path.join(self.metadata['workdir'], 'tests')
+        if os.path.isdir(test_dir):
+            shutil.rmtree(test_dir)
+        os.makedirs(test_dir)
+        file_name = self.download_file(url, 'tests')
         mozfile.extract(file_name)
         os.remove(file_name)
 
         url = self.get_resource_url(lambda x: x.string == 'build.prop')
-        self.download_file(url, 'panda')
+        self.download_file(url)
         
         url = self.get_resource_url(lambda x: x.string == 'sources.xml')
-        self.download_file(url, 'panda')
+        self.download_file(url)
 
         # license
         doc = self.download_file(self.url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
         text = soup.find_all('pre')[-1].string
-        license = open(os.path.join(self.metadata['workdir'], 'panda', 'license.txt'), 'w')
+        license = open(os.path.join(self.metadata['workdir'], 'license.txt'), 'w')
         license.write(text)
         license.close()
 
     def prepare_unagi(self):
-        unagi_dir = os.path.join(self.metadata['workdir'], 'unagi')
-        if os.path.isdir(unagi_dir):
-            shutil.rmtree(unagi_dir)
-        os.makedirs(unagi_dir)
-
         url = self.get_resource_url(lambda x: x.string.startswith('b2g') and
                                                          x.string.endswith('.tar.gz'))
-        file_name = self.download_file(url, 'unagi')
+        file_name = self.download_file(url)
         files = mozfile.extract(file_name)
         os.remove(file_name)
         mvdir = os.path.join(self.metadata['workdir'], 'gecko')
@@ -84,12 +78,12 @@ class PvtbuildsHandler(Base, UnagiBase, PandaBase, SymbolsBase, TinderboxMixin):
         shutil.move(files[0], mvdir)
 
         url = self.get_resource_url(lambda x: x.string == 'unagi.zip')
-        file_name = self.download_file(url, 'unagi')
+        file_name = self.download_file(url)
         mozfile.extract(file_name)
         os.remove(file_name)
 
         url = self.get_resource_url(lambda x: x.string == 'build.prop')
-        self.download_file(url, 'unagi')
+        self.download_file(url)
         
         url = self.get_resource_url(lambda x: x.string == 'sources.xml')
-        self.download_file(url, 'unagi')
+        self.download_file(url)

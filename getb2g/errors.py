@@ -3,7 +3,7 @@ __all__ = ('InvalidResourceException', 'IncompleteRequestException', 'MissingDat
 class GetB2GException(Exception):
     def __init__(self, *args, **kwargs):
         msg = kwargs.get('msg') or self.__doc__
-        super(MissingDataException, self).__init__(msg, *args, **kwargs)
+        super(GetB2GException, self).__init__(msg, *args, **kwargs)
 
 class InvalidResourceException(GetB2GException):
     """The requested resource is not valid"""

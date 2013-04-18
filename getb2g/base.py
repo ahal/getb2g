@@ -29,11 +29,15 @@ class Base(DownloadMixin, StorageMixin):
         of handling for a specified request
         """
         handled_resources = []
-        methods = inspect.getmembers(cls, inspect.ismethod)
-        for resource in request.resources:
-            for name, ref in methods:
-                if name == 'prepare_%s' % resource:
-                    handled_resources.append(resource)
+        methods = [name for name, ref in inspect.getmembers(cls, inspect.ismethod)]
+        
+        for res in request.resources:
+            if 'prepare_%s' % res in methods:
+                if res in valid_resources:
+                    if all(r not in request.resources for r in valid_resources[res]) or any('prepare_%s' % r in methods for r in valid_resources[res]):
+                        handled_resources.append(res)
+                else:
+                    handled_resources.append(res)
         return handled_resources
 
     @classmethod
@@ -49,7 +53,10 @@ class Base(DownloadMixin, StorageMixin):
                 getattr(h, 'prepare_%s' % resource)()
                 request.metadata = h.metadata
                 request.resources.remove(resource)
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except:
+                log.warning("%s encountered an error while attempting to prepare '%s'" % (cls.__name__, resource))
                 log.debug(traceback.format_exc())
 
     def prepare_busybox(self):
@@ -71,6 +78,7 @@ class Base(DownloadMixin, StorageMixin):
                 break
         else:
             log.error("Couldn't find a busybox binary for platform '%s'" % platform)
+    prepare_busybox.groups = ['default']
 
 class GeckoBase(object):
     __metaclass__ = ABCMeta
@@ -80,6 +88,7 @@ class GeckoBase(object):
         Downloads and extracts a gecko directory
         for the given args
         """
+    prepare_gecko.groups = ['emulator']
 
 class SymbolsBase(object):
     __metaclass__ = ABCMeta
@@ -91,6 +100,7 @@ class SymbolsBase(object):
         Returns the path to an unzipped symbols directory
         for the given args
         """
+    prepare_symbols.groups = ['gecko', 'unagi', 'panda']
 
     def prepare_minidump_stackwalk(self, url=None):
         """
@@ -109,6 +119,7 @@ class SymbolsBase(object):
             os.remove(path)
         file_name = self.download_file(url, 'minidump_stackwalk')
         os.chmod(file_name, stat.S_IEXEC)
+    prepare_minidump_stackwalk.groups = ['symbols']
 
 class TestBase(object):
     __metaclass__ = ABCMeta
@@ -117,6 +128,7 @@ class TestBase(object):
         """
         Returns the path to an unzipped tests bundle
         """
+    prepare_tests.groups = ['gecko']
 
 class EmulatorBase(object):
     __metaclass__ = ABCMeta

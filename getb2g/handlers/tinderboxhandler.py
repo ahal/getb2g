@@ -26,7 +26,6 @@ class TinderboxHandler(Base, GeckoBase, SymbolsBase, TestBase, TinderboxMixin):
             shutil.rmtree(extract_dir)
         shutil.move(files[0], extract_dir)
 
-
     def prepare_tests(self):
         url = self.get_resource_url(lambda x: x.string.startswith('b2g') and
                                                         x.string.endswith('tests.zip'))

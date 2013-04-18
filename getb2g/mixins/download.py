@@ -14,6 +14,7 @@ __all__ = ('DownloadMixin',)
 class DownloadMixin(object):
     """Mixin for downloading files"""
     _CHUNK_SIZE = 1048576
+    _first_print = ''
 
     def install_basic_auth(self, url, user=None, password=None):
         user = user or self.metadata.get('user')
@@ -39,9 +40,9 @@ class DownloadMixin(object):
         percent = float(bytes_so_far) / total_size
         percent = round(percent * 100, 2)
         if log.level <= mozlog.INFO:
-            sys.stdout.write("\rGetB2G INFO | %s of %s bytes (%0.0f%%)" % (bytes_so_far, total_size, percent))
+            sys.stdout.write('%s(%s%%)' % (self._first_print, str('%0.0f' % percent).zfill(2)))
         if bytes_so_far >= total_size:
-            sys.stdout.write("\n")
+            sys.stdout.write('\n')
         sys.stdout.flush()
 
     
@@ -71,10 +72,7 @@ class DownloadMixin(object):
         if None not in (user, password):
             self.save_auth(domain, user, password)
 
-        if not silent:
-            log.info('downloading %s' % url)
         workdir = self.metadata.get('workdir')
-
         try:
             total_size = int(response.info().getheader('Content-Length').strip())
         except AttributeError:
@@ -90,6 +88,7 @@ class DownloadMixin(object):
             dest = os.path.join(workdir, file_name)
            
         local_file = open(dest, 'wb')
+        self._first_print = 'GetB2G INFO | downloading %s ' % url
         while True:
             chunk = response.read(self._CHUNK_SIZE)
             if not chunk:
@@ -100,5 +99,6 @@ class DownloadMixin(object):
 
             if total_size and not silent:
                 self._chunk_report(bytes_so_far, total_size)
+                self._first_print = '\b\b\b\b\b'
         local_file.close()
         return dest

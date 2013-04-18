@@ -10,6 +10,7 @@ import os
 import sys
 
 from base import valid_resources
+from errors import MultipleDeviceResourceException
 from prompt import prompt_resources 
 from request import Request
 import prompt
@@ -31,8 +32,7 @@ def cli(args=sys.argv[1:]):
     parser.add_option('--no-prompt', dest='prompt_disabled',
                       action='store_true', default=False,
                       help='Never prompt me for any additional '
-                           'information. If vital information is missing, '
-                           'raise an exception instead.')
+                           'information, error out instead')
     parser.add_option('--damnit', dest='damnit',
                       action='store_true', default=False,
                       help='Just give me something that I can use to test B2G damnit!')
@@ -40,11 +40,14 @@ def cli(args=sys.argv[1:]):
                       type='choice', default='INFO',
                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                       help='Only print messages at this log level')
-    for resource in valid_resources['all']:
+    for resource in valid_resources['device'].difference(valid_resources['default']):
         cmdlet = resource.replace('_', '-')
         parser.add_option('--prepare-%s' % cmdlet, dest=resource,
                           action='store_true', default=False,
                           help='Do whatever it takes to set up %s' % resource)
+    parser.add_option('--only', dest='only',
+                      action='store_true', default=False,
+                      help='Do not prepare any extraneous resources (like tests or symbols)')
     parser.add_option('-m', '--metadata', dest='metadata',
                       action='append', default=[],
                       help='Append a piece of metadata in the form <key>=<value>. ' 
@@ -69,11 +72,30 @@ def cli(args=sys.argv[1:]):
             metadata[k] = v
    
     if options.damnit:
-        resources = ('emulator', 'gecko', 'symbols', 'busybox', 'tests', 'minidump_stackwalk')
+        resources = ('emulator', 'gecko', 'busybox', 'tests', 'minidump_stackwalk')
+        if not 'branch' in metadata:
+            metadata['branch'] = 'mozilla-central'
         return build_request(resources, metadata)
 
-    resources = [r for r in valid_resources['all'] if getattr(options, r, False)]
-    resources = prompt_resources(valid_resources, resources)
+    resources = set([r for r in valid_resources['all'] if getattr(options, r, False)])
+    device = resources.intersection(valid_resources['device'])
+    if len(device) > 1:
+        raise MultipleDeviceResourceException(*device)
+
+    if not options.only:
+        resources.update(valid_resources['default'])
+        resources = prompt_resources(valid_resources, resources)
+
+        def add_dependencies(res):
+            for r in valid_resources[res]:
+                if r in valid_resources:
+                    add_dependencies(r)
+                if res in resources:
+                    resources.add(r)
+        for res in valid_resources['all']:
+            if res in valid_resources:
+                add_dependencies(res)
+
     build_request(resources, metadata)
 
 if __name__ == '__main__':
