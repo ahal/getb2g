@@ -4,30 +4,27 @@ import urllib2
 import urlparse
 
 from ..errors import MissingDataException
-from .. import prompt
+from ..prompt import prompt_user_pass
 
 import mozlog
 log = mozlog.getLogger('GetB2G')
 
-__all__ = ('DownloadMixin')
+__all__ = ('DownloadMixin',)
 
 class DownloadMixin(object):
     """Mixin for downloading files"""
     _CHUNK_SIZE = 1048576
 
     def install_basic_auth(self, url, user=None, password=None):
-        user = user or self.data.get('user')
-        password = password or self.data.get('password')
-        user, password = prompt.prompt_user_pass(url, user, password)
+        user = user or self.metadata.get('user')
+        password = password or self.metadata.get('password')
 
         if None in (url, user, password):
             raise MissingDataException()
 
-        auth_handler = urllib2.HTTPBasicAuthHandler()
-        auth_handler.add_password(realm='B2G Builds',
-                                  uri=url,
-                                  user=user,
-                                  passwd=password)
+        passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        passman.add_password(None, url, user, password)
+        auth_handler = urllib2.HTTPBasicAuthHandler(passman)
         opener = urllib2.build_opener(auth_handler)
         urllib2.install_opener(opener)
     
@@ -42,25 +39,41 @@ class DownloadMixin(object):
         percent = float(bytes_so_far) / total_size
         percent = round(percent * 100, 2)
         if log.level <= mozlog.INFO:
-            sys.stdout.write("\r%s of %s bytes (%0.0f%%)" % (bytes_so_far, total_size, percent))
+            sys.stdout.write("\rGetB2G INFO | %s of %s bytes (%0.0f%%)" % (bytes_so_far, total_size, percent))
         if bytes_so_far >= total_size:
             sys.stdout.write("\n")
         sys.stdout.flush()
 
     
-    def download_file(self, url, file_name=None):
-        try:
-            response = urllib2.urlopen(url)
-        except urllib2.HTTPError, e:
-            if e.code == 401:
-                s = urlparse.urlparse(url)
-                self.install_basic_auth(url='%s://%s' % (s.scheme, s.netloc))
-                return self.download_file(url, file_name)
-            else:
-                raise
+    def download_file(self, url, file_name=None, silent=False):
+        domain = urlparse.urlparse(url)
+        domain = '%s://%s' % (domain.scheme, domain.netloc)
+        auth = self.load_auth(domain)
 
-        log.info('downloading %s' % url)
-        workdir = self.data.get('workdir')
+        for user, passwd in auth:
+            self.install_basic_auth(url=url, user=user, password=passwd)
+
+        user = None
+        password = None
+        while True:
+            try:
+                response = urllib2.urlopen(url)
+                break
+            except urllib2.HTTPError, e:
+                if e.code == 401:
+                    user, password = prompt_user_pass(url)
+                    if None in (user, password):
+                        raise
+                    self.install_basic_auth(url=url, user=user, password=password)
+                else:
+                    raise
+
+        if None not in (user, password):
+            self.save_auth(domain, user, password)
+
+        if not silent:
+            log.info('downloading %s' % url)
+        workdir = self.metadata.get('workdir')
 
         try:
             total_size = int(response.info().getheader('Content-Length').strip())
@@ -71,11 +84,11 @@ class DownloadMixin(object):
         if not file_name:
             file_name = self.get_filename_from_url(url)
 
-        if os.path.isdir(file_name):
+        if os.path.isdir(os.path.join(workdir, file_name)):
             dest = os.path.join(workdir, file_name, self.get_filename_from_url(url))
         else:
             dest = os.path.join(workdir, file_name)
-            
+           
         local_file = open(dest, 'wb')
         while True:
             chunk = response.read(self._CHUNK_SIZE)
@@ -85,7 +98,7 @@ class DownloadMixin(object):
             local_file.write(chunk)
 
 
-            if total_size:
+            if total_size and not silent:
                 self._chunk_report(bytes_so_far, total_size)
         local_file.close()
         return dest

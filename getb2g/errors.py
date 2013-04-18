@@ -1,12 +1,18 @@
-__all__ = ('InvalidResourceException', 'IncompleteRequestException')
+__all__ = ('InvalidResourceException', 'IncompleteRequestException', 'MissingDataException', 'MultipleDeviceResourceException')
 
-class InvalidResourceException(Exception):
-    """The requested resource was not valid"""
+class GetB2GException(Exception):
+    def __init__(self, *args, **kwargs):
+        msg = kwargs.get('msg') or self.__doc__
+        super(MissingDataException, self).__init__(msg, *args, **kwargs)
 
-class IncompleteRequestException(Exception):
-    """The requested resource was not valid"""
+class InvalidResourceException(GetB2GException):
+    """The requested resource is not valid"""
 
-class MissingDataException(Exception):
+class IncompleteRequestException(GetB2GException):
+    """The requested resource is not valid"""
+
+class MissingDataException(GetB2GException):
     """Not enough information to complete the request"""
-    def __init__(self, message=None, *args):
-        super(MissingDataException, self).__init__(message or self.__doc__, *args)
+
+class MultipleDeviceResourceException(GetB2GException):
+    """Not allowed to have more than one device resource"""

@@ -1,8 +1,6 @@
 import getpass
 import sys
 
-#from base import valid_resources
-
 prompt_disabled = False
 
 def prompt(question, valid_answers=None):
@@ -22,7 +20,7 @@ def prompt(question, valid_answers=None):
 
 #convenience methods
 
-def prompt_resources(resources=None):
+def prompt_resources(valid_resources, resources=None):
     if prompt_disabled:
         return resources
 
@@ -46,10 +44,8 @@ def prompt_user_pass(url, user=None, password=None):
     if prompt_disabled:
         return (user, password) 
 
-    if not user:
-        if prompt("Do you have a user name for '%s'?" % url) == 'y':
-            user = raw_input("Username: ")
-    if not password:
-        if prompt("Do you have a password for '%s'?" % url) == 'y':
+    if not user or not password:
+        if prompt("Do you have a user name and password for '%s'?" % url) == 'y':
+            user = raw_input("User name: ")
             password = getpass.getpass()
     return (user, password) 

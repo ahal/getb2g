@@ -1,6 +1,9 @@
 from base import valid_resources
-from errors import InvalidResourceException
+from errors import InvalidResourceException, MultipleDeviceResourceException
 import handlers
+
+import mozlog
+log = mozlog.getLogger('GetB2G')
 
 __all__ = ('Request', 'valid_resources')
 
@@ -12,20 +15,31 @@ class Request(object):
 
     def add_resource(self, resource):
         if resource not in valid_resources['all']:
-            raise InvalidResourceException("The resource '%s' is not valid! Choose from: %s" %
+            raise InvalidResourceException(msg="The resource '%s' is not valid! Choose from: %s" %
                                                             (resource, ", ".join(valid_resources['all'])))
         self.resources.append(resource)
+        if resource in valid_resources['device']:
+            if hasattr(self.metadata, 'device'):
+                raise MultipleDeviceResourceException()
+            self.metadata['device'] = resource
 
     def dispatch(self):
+        """
+        Request dispatches itself by calling execute_request on each of the required handlers
+        """
         potential_handlers = []
         for handler in handlers.all_handlers:
-            handled_resources = getattr(handlers, handler).handled_resources(self)
-            potential_handlers.append((handler, handled_resources))
+            num_res = len(getattr(handlers, handler).handled_resources(self))
+            if num_res > 0:
+                potential_handlers.append((handler, num_res))
 
-        potential_handlers.sort(key=lambda x: len(x[1]))
-        for handler, resources in potential_handlers:
+        # sort the handlers based on how many resources they can handle,
+        # we want to use as few as possible so resources come from the same place 
+        potential_handlers.sort(key=lambda x: x[1], reverse=True)
+        for handler, num_res in potential_handlers:
             if len(self.resources) > 0:
                 getattr(handlers, handler).execute_request(self)
         
         if len(self.resources) > 0:
-            print "Sorry, we were unable to find an appropriate handler for these resources: %s" % ", ".join([r for r in self.resources])
+            log.error("Sorry, unable to prepare any of these resources: %s" % ", ".join([r for r in self.resources]))
+        log.info("Jobs done! Take a look in '%s' to see your files!" % self.metadata['workdir'])

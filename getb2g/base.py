@@ -7,26 +7,25 @@ import sys
 import tempfile
 import traceback
 
-from mixins.download import DownloadMixin
+from mixins import DownloadMixin, StorageMixin
 import mozinfo
 import mozlog
 log = mozlog.getLogger('GetB2G')
 
 __all__ = ('Base', 'GeckoBase', 'SymbolsBase', 'EmulatorBase', 'TestBase', 'valid_resources')
-valid_resources = {'all': set([])}
 
-
-class Base(DownloadMixin):
+class Base(DownloadMixin, StorageMixin):
     __metaclass__ = ABCMeta
     _default_busybox_url = 'http://busybox.net/downloads/binaries/latest/'
 
-    def __init__(self, **kwargs):
-        self.data = kwargs
+    def __init__(self, **metadata):
+        self.metadata = metadata
+        super(Base, self).__init__()
 
-    @classmethod 
+    @classmethod
     def handled_resources(cls, request):
         """
-        Returns a subset of the resources that this class is capable 
+        Returns a subset of the resources that this class is capable
         of handling for a specified request
         """
         handled_resources = []
@@ -44,26 +43,27 @@ class Base(DownloadMixin):
         """
         handled_resources = cls.handled_resources(request)
         for resource in handled_resources:
-            success = False
+            log.info("Preparing '%s'" % resource)
             try:
                 h = cls(**request.metadata)
                 getattr(h, 'prepare_%s' % resource)()
+                request.metadata = h.metadata
                 request.resources.remove(resource)
             except:
                 log.debug(traceback.format_exc())
-    
+
     def prepare_busybox(self):
         """
         Downloads a busybox binary for the given platform
         """
         url = self._default_busybox_url
-        platform = self.data.get('busybox_platform') or self.data.get('platform', 'armv6l')
+        platform = self.metadata.get('busybox_platform') or self.metadata.get('platform', 'armv6l')
 
-        doc = self.download_file(url, tempfile.mkstemp()[1])
+        doc = self.download_file(url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
         for link in soup.find_all('a'):
             if 'busybox-%s' % platform in link['href']:
-                path = os.path.join(self.data['workdir'], 'busybox')
+                path = os.path.join(self.metadata['workdir'], 'busybox')
                 if os.path.isfile(path):
                     os.remove(path)
                 file_name = self.download_file(url + link['href'], 'busybox')
@@ -104,6 +104,9 @@ class SymbolsBase(object):
                 url = self._default_minidump_stackwalk_url % ('osx%s' % arch)
             elif mozinfo.isWin:
                 url = self._default_minidump_stackwalk_url % 'win32'
+        path = os.path.join(self.metadata['workdir'], 'minidump_stackwalk')
+        if os.path.isfile(path):
+            os.remove(path)
         file_name = self.download_file(url, 'minidump_stackwalk')
         os.chmod(file_name, stat.S_IEXEC)
 
@@ -129,24 +132,25 @@ class UnagiBase(object):
     @abstractmethod
     def prepare_unagi(self):
         """
-        Returns the path to an extracted unagi build 
+        Returns the path to an extracted unagi build
         """
     prepare_unagi.groups = ['device']
 
-class OtoroBase(object):
+class PandaBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
-    def prepare_otoro(self):
+    def prepare_panda(self):
         """
-        Returns the path to an extracted otoro build 
+        Returns the path to an extracted panda build
         """
-    prepare_otoro.groups = ['device']
+    prepare_panda.groups = ['device']
 
 # inspect the abstract base classes and extract the valid resources
+valid_resources = {'all': set([])}
 for cls_name, cls in inspect.getmembers(sys.modules[__name__], inspect.isclass):
     for name, method in inspect.getmembers(cls, inspect.ismethod):
         if name.startswith('prepare'):
-            name = name[len('prepare_'):].lower() 
+            name = name[len('prepare_'):].lower()
             valid_resources['all'].add(name)
             for group in getattr(method, 'groups', []):
                 if group not in valid_resources:

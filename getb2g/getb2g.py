@@ -72,11 +72,8 @@ def cli(args=sys.argv[1:]):
         resources = ('emulator', 'gecko', 'symbols', 'busybox', 'tests', 'minidump_stackwalk')
         return build_request(resources, metadata)
 
-    print options.minidump_stackwalk
     resources = [r for r in valid_resources['all'] if getattr(options, r, False)]
-    print resources
-    resources = prompt_resources(resources)
-    print resources
+    resources = prompt_resources(valid_resources, resources)
     build_request(resources, metadata)
 
 if __name__ == '__main__':
