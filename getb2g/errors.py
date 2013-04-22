@@ -1,4 +1,5 @@
-__all__ = ('InvalidResourceException', 'IncompleteRequestException', 'MissingDataException', 'MultipleDeviceResourceException')
+__all__ = ('InvalidResourceException', 'IncompleteRequestException', 'MissingDataException', 'MultipleDeviceResourceException'
+           'PrepareFailedException')
 
 class GetB2GException(Exception):
     def __init__(self, *args, **kwargs):
@@ -16,3 +17,6 @@ class MissingDataException(GetB2GException):
 
 class MultipleDeviceResourceException(GetB2GException):
     """Not allowed to have more than one device resource"""
+
+class PrepareFailedException(GetB2GException):
+    """Failed to prepare the requested resource"""

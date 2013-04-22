@@ -7,11 +7,12 @@ import os
 import sys
 
 PACKAGE_NAME = "getb2g"
-PACKAGE_VERSION = "2.1"
+PACKAGE_VERSION = "2.2"
 
 desc = """Get the latest B2G nightly builds for a specific device"""
 deps = ['BeautifulSoup4',
         'mozinfo',
+        'mozinstall',
         'mozlog',
         'mozfile>=0.4',]
 # take description from README

@@ -33,21 +33,19 @@ def cli(args=sys.argv[1:]):
                       action='store_true', default=False,
                       help='Never prompt me for any additional '
                            'information, error out instead')
-    parser.add_option('--damnit', dest='damnit',
+    parser.add_option('--only', dest='only',
                       action='store_true', default=False,
-                      help='Just give me something that I can use to test B2G damnit!')
+                      help='Only prepare resources I explicitly specify (either by '
+                           'command line or prompt)')
     parser.add_option('--log-level', dest='log_level', action='store',
                       type='choice', default='INFO',
                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                       help='Only print messages at this log level')
-    for resource in valid_resources['device'].difference(valid_resources['default']):
+    for resource in valid_resources['cli'].difference(valid_resources['default']):
         cmdlet = resource.replace('_', '-')
         parser.add_option('--prepare-%s' % cmdlet, dest=resource,
                           action='store_true', default=False,
                           help='Do whatever it takes to set up %s' % resource)
-    parser.add_option('--only', dest='only',
-                      action='store_true', default=False,
-                      help='Do not prepare any extraneous resources (like tests or symbols)')
     parser.add_option('-m', '--metadata', dest='metadata',
                       action='append', default=[],
                       help='Append a piece of metadata in the form <key>=<value>. ' 
@@ -71,12 +69,6 @@ def cli(args=sys.argv[1:]):
         else:
             metadata[k] = v
    
-    if options.damnit:
-        resources = ('emulator', 'gecko', 'busybox', 'tests', 'minidump_stackwalk')
-        if not 'branch' in metadata:
-            metadata['branch'] = 'mozilla-central'
-        return build_request(resources, metadata)
-
     resources = set([r for r in valid_resources['all'] if getattr(options, r, False)])
     device = resources.intersection(valid_resources['device'])
     if len(device) > 1:
@@ -84,15 +76,17 @@ def cli(args=sys.argv[1:]):
 
     if not options.only:
         resources.update(valid_resources['default'])
-        resources = prompt_resources(valid_resources, resources)
+    resources = prompt_resources(valid_resources, resources)
 
+    if not options.only:
         def add_dependencies(res):
             for r in valid_resources[res]:
-                if r in valid_resources:
-                    add_dependencies(r)
                 if res in resources:
                     resources.add(r)
-        for res in valid_resources['all']:
+                if r in valid_resources:
+                    add_dependencies(r)
+        t_resources = resources.copy()
+        for res in t_resources:
             if res in valid_resources:
                 add_dependencies(res)
 

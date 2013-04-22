@@ -2,17 +2,20 @@ from abc import ABCMeta, abstractmethod
 from bs4 import BeautifulSoup
 import inspect
 import os
+import shutil
 import stat
 import sys
 import tempfile
 import traceback
 
 from mixins import DownloadMixin, StorageMixin
+import mozfile
 import mozinfo
 import mozlog
 log = mozlog.getLogger('GetB2G')
 
-__all__ = ('Base', 'GeckoBase', 'SymbolsBase', 'EmulatorBase', 'TestBase', 'valid_resources')
+__all__ = ['Base', 'GeckoBase', 'SymbolsBase', 'EmulatorBase', 'TestBase', 'PandaBase',
+           'UnagiBase', 'B2GDesktopBase', 'valid_resources']
 
 class Base(DownloadMixin, StorageMixin):
     __metaclass__ = ABCMeta
@@ -30,7 +33,7 @@ class Base(DownloadMixin, StorageMixin):
         """
         handled_resources = []
         methods = [name for name, ref in inspect.getmembers(cls, inspect.ismethod)]
-        
+
         for res in request.resources:
             if 'prepare_%s' % res in methods:
                 if res in valid_resources:
@@ -61,10 +64,10 @@ class Base(DownloadMixin, StorageMixin):
 
     def prepare_busybox(self):
         """
-        Downloads a busybox binary for the given platform
+        Prepares the busybox binary
         """
         url = self._default_busybox_url
-        platform = self.metadata.get('busybox_platform') or self.metadata.get('platform', 'armv6l')
+        platform = self.metadata.get('busybox_platform', 'armv6l')
 
         doc = self.download_file(url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
@@ -85,10 +88,9 @@ class GeckoBase(object):
     @abstractmethod
     def prepare_gecko(self):
         """
-        Downloads and extracts a gecko directory
-        for the given args
+        Prepares the gecko directory
         """
-    prepare_gecko.groups = ['emulator']
+    prepare_gecko.groups = ['emulator', 'cli']
 
 class SymbolsBase(object):
     __metaclass__ = ABCMeta
@@ -97,14 +99,13 @@ class SymbolsBase(object):
     @abstractmethod
     def prepare_symbols(self):
         """
-        Returns the path to an unzipped symbols directory
-        for the given args
+        Prepares the symbols directory
         """
     prepare_symbols.groups = ['gecko', 'unagi', 'panda']
 
     def prepare_minidump_stackwalk(self, url=None):
         """
-        Downloads the minidump stackwalk binaries if missing
+        Prepares the minidump stackwalk binary
         """
         if not url:
             arch = '64' if mozinfo.bits == 64 else ''
@@ -123,39 +124,64 @@ class SymbolsBase(object):
 
 class TestBase(object):
     __metaclass__ = ABCMeta
+    _default_xre_url = 'http://people.mozilla.com/~ahalberstadt/getb2g/xre.zip'
+
     @abstractmethod
     def prepare_tests(self):
         """
-        Returns the path to an unzipped tests bundle
+        Prepares the tests bundle
         """
-    prepare_tests.groups = ['gecko']
+    prepare_tests.groups = ['gecko', 'b2g_desktop']
+
+    def prepare_xre(self, url=None):
+        """
+        Prepares the xre directory
+        """
+        url = url or self._default_xre_url
+        file_name = self.download_file(url)
+        path = os.path.join(self.metadata['workdir'], 'xre')
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        files = mozfile.extract(file_name)
+        os.remove(file_name)
+        shutil.move(files[0], path)
+    prepare_xre.groups = ['tests']
 
 class EmulatorBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
     def prepare_emulator(self):
         """
-        Returns the path to an unzipped emulator package
+        Prepares the emulator package
         """
-    prepare_emulator.groups = ['device']
+    prepare_emulator.groups = ['device', 'cli']
 
 class UnagiBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
     def prepare_unagi(self):
         """
-        Returns the path to an extracted unagi build
+        Prepares the unagi build
         """
-    prepare_unagi.groups = ['device']
+    prepare_unagi.groups = ['device', 'cli']
 
 class PandaBase(object):
     __metaclass__ = ABCMeta
     @abstractmethod
     def prepare_panda(self):
         """
-        Returns the path to an extracted panda build
+        Prepares the panda build
         """
-    prepare_panda.groups = ['device']
+    prepare_panda.groups = ['device', 'cli']
+
+class B2GDesktopBase(object):
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def prepare_b2g_desktop(self):
+        """
+        Prepares the b2g desktop build
+        """
+    prepare_b2g_desktop.groups = ['device', 'cli']
 
 # inspect the abstract base classes and extract the valid resources
 valid_resources = {'all': set([])}

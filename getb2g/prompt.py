@@ -26,10 +26,17 @@ def prompt_resources(valid_resources, resources=None):
 
     resources = set(resources) or set([])
 
-    if not valid_resources['device'].intersection(resources):
+    if not valid_resources['cli'].intersection(resources):
         device = prompt("What target device are you building for?",
                         valid_resources['device'])
         resources.add(device)
+
+    temp_resources = resources.copy()
+    for resource in temp_resources:
+        for group in valid_resources['all']:
+            if group in valid_resources and resource in valid_resources[group]:
+                if prompt("Would you like to prepare '%s'?" % group) == 'y':
+                    resources.add(group)
     return resources
 
 def prompt_user_pass(url, user=None, password=None):

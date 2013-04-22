@@ -19,7 +19,11 @@ class TinderboxMixin(object):
         branches = self.get_available_branches()
         self._branch = self.metadata.get('branch')
         if not self._branch or self._branch not in branches:
-            self._branch = prompt('Which branch would you like to use?', branches)
+            p_branches = [b for b in branches if b.startswith('mozilla')]
+            p_branches.append('showall')
+            self._branch = prompt('Which branch would you like to use?', p_branches)
+            if self._branch == 'showall':
+                self._branch = prompt('Which branch would you like to use?', branches)
         if not self._branch:
             self._branch = [b for b in ['mozilla-central', 'mozilla-b2g18'] if b in branches][0]
         self.metadata['branch'] = self._branch
@@ -63,4 +67,6 @@ class TinderboxMixin(object):
             s = tr.find_all('a')[0].string.rstrip('/')
             if s.endswith(self.device):
                 branches.add(s[:-(len(self.device)+1)])
+            elif s.startswith('latest-'):
+                branches.add(s[len('latest-'):])
         return sorted(list(branches))
