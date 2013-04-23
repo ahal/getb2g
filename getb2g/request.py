@@ -3,6 +3,7 @@ import shutil
 
 from base import valid_resources
 from errors import InvalidResourceException, MultipleDeviceResourceException
+from prompt import prompt
 import handlers
 
 import mozlog
@@ -24,11 +25,18 @@ class Request(object):
         if resource in valid_resources['device']:
             if 'device' in self.metadata:
                 raise MultipleDeviceResourceException(self.metadata['device'], resource)
+
             self.metadata['device'] = resource
             self.metadata['workdir'] = os.path.join(self.metadata['workdir'], resource)
             if os.path.isdir(self.metadata['workdir']):
-                shutil.rmtree(self.metadata['workdir'])
-            os.makedirs(self.metadata['workdir'])
+                if prompt("Resource '%s' already exists in the working directory, do you want to overwrite it?" % resource) == "y":
+                    log.info("removing '%s'" % self.metadata['workdir'])
+                    shutil.rmtree(self.metadata['workdir'])
+                else:
+                    self.metadata['workdir'] = prompt("Enter the full path to a new working directory:", [])
+
+            if not os.path.isdir(self.metadata['workdir']):
+                os.makedirs(self.metadata['workdir'])
 
     def dispatch(self):
         """

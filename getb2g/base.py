@@ -37,7 +37,8 @@ class Base(DownloadMixin, StorageMixin):
         for res in request.resources:
             if 'prepare_%s' % res in methods:
                 if res in valid_resources:
-                    if all(r not in request.resources for r in valid_resources[res]) or any('prepare_%s' % r in methods for r in valid_resources[res]):
+                    if all(r not in request.resources for r in valid_resources[res]) \
+                            or any('prepare_%s' % r in methods for r in valid_resources[res]):
                         handled_resources.append(res)
                 else:
                     handled_resources.append(res)
@@ -50,7 +51,7 @@ class Base(DownloadMixin, StorageMixin):
         """
         handled_resources = cls.handled_resources(request)
         for resource in handled_resources:
-            log.info("Preparing '%s'" % resource)
+            log.info("preparing '%s'" % resource)
             try:
                 h = cls(**request.metadata)
                 getattr(h, 'prepare_%s' % resource)()

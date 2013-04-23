@@ -5,7 +5,7 @@ import sqlite3
 __all__ = ('StorageMixin',)
 
 class StorageMixin(object):
-    db = os.path.expanduser(os.path.join('~', '.getb2g', 'storage.sqlite'))
+    db = os.path.expanduser(os.path.join('~', '.getb2g', 'storage.db'))
 
     def __init__(self, **kwargs):
         if not os.path.isdir(os.path.dirname(self.db)):
@@ -19,6 +19,9 @@ class StorageMixin(object):
         self.conn.close()
 
     def save_auth(self, url, user, password):
+        if os.path.isfile(os.path.join(os.path.dirname(self.db), 'no-store')):
+            return
+
         self.cur.execute('insert into passwords values (?, ?, ?)', (url, user, base64.b64encode(password)))
 
     def load_auth(self, url):

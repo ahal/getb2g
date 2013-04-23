@@ -33,6 +33,11 @@ class TinderboxMixin(object):
     def url(self):
         if self._url:
             return self._url
+
+        if 'build_dir' in self.metadata:
+            self._url = self.metadata['build_dir']
+            return self._url
+
         url = self._base_url + '%s-%s' % (self.branch, self.device)
         doc = self.download_file(url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))

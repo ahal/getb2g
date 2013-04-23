@@ -7,14 +7,14 @@ import os
 import sys
 
 PACKAGE_NAME = "getb2g"
-PACKAGE_VERSION = "2.2"
+PACKAGE_VERSION = "2.3"
 
 desc = """Get the latest B2G nightly builds for a specific device"""
 deps = ['BeautifulSoup4',
         'mozinfo',
         'mozinstall',
         'mozlog',
-        'mozfile>=0.4',]
+        'mozfile>=0.5',]
 # take description from README
 here = os.path.dirname(os.path.abspath(__file__))
 try:
