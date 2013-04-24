@@ -78,7 +78,7 @@ class Base(DownloadMixin, StorageMixin):
                 if os.path.isfile(path):
                     os.remove(path)
                 file_name = self.download_file(url + link['href'], 'busybox')
-                os.chmod(file_name, stat.S_IEXEC)
+                os.chmod(file_name, stat.S_IEXEC | stat.S_IREAD)
                 break
         else:
             log.error("Couldn't find a busybox binary for platform '%s'" % platform)
@@ -120,7 +120,7 @@ class SymbolsBase(object):
         if os.path.isfile(path):
             os.remove(path)
         file_name = self.download_file(url, 'minidump_stackwalk')
-        os.chmod(file_name, stat.S_IEXEC)
+        os.chmod(file_name, stat.S_IEXEC | stat.S_IREAD)
     prepare_minidump_stackwalk.groups = ['symbols']
 
 class TestBase(object):
