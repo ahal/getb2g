@@ -72,6 +72,7 @@ class Base(DownloadMixin, StorageMixin):
 
         doc = self.download_file(url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
+        os.remove(doc)
         for link in soup.find_all('a'):
             if 'busybox-%s' % platform in link['href']:
                 path = os.path.join(self.metadata['workdir'], 'busybox')

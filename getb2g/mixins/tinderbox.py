@@ -41,6 +41,7 @@ class TinderboxMixin(object):
         url = self._base_url + '%s-%s' % (self.branch, self.device)
         doc = self.download_file(url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
+        os.remove(doc)
 
         identifier = 0
         for tr in soup.find_all('tr')[3:-1]:
@@ -60,6 +61,7 @@ class TinderboxMixin(object):
     def get_resource_url(self, condition):
         doc = self.download_file(self.url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
+        os.remove(doc)
         for link in soup.find_all('a'):
             if condition(link):
                 return self.url + link.string
@@ -67,6 +69,7 @@ class TinderboxMixin(object):
     def get_available_branches(self):
         doc = self.download_file(self._base_url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
+        os.remove(doc)
         branches = set([])
         for tr in soup.find_all('tr')[3:-1]:
             s = tr.find_all('a')[0].string.rstrip('/')

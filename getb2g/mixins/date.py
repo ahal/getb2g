@@ -43,10 +43,12 @@ class DateMixin(object):
             return
         if condition:
             soup = BeautifulSoup(open(doc, 'r'))
+            os.remove(doc)
             for link in soup.find_all('a'):
                 if condition(link):
                     return url + link.string
         else:
+            os.remove(doc)
             return url
 
     def _get_date_from_string(self, string, format_char='-'):
@@ -65,6 +67,7 @@ class DateMixin(object):
     def _get_next_latest_date(self, prev_date):
         doc = self.download_file(self._base_url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
+        os.remove(doc)
         prev_date = self._get_date_from_string(prev_date)
         if not prev_date:
             prev_date = Date(9999,0,0,0,0,0)

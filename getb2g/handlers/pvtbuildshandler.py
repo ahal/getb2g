@@ -61,6 +61,7 @@ class PvtbuildsHandler(Base, UnagiBase, PandaBase, SymbolsBase, TinderboxMixin):
         # license
         doc = self.download_file(self.url, tempfile.mkstemp()[1], silent=True)
         soup = BeautifulSoup(open(doc, 'r'))
+        os.remove(doc)
         text = soup.find_all('pre')[-1].string
         license = open(os.path.join(self.metadata['workdir'], 'license.txt'), 'w')
         license.write(text)

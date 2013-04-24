@@ -1,9 +1,5 @@
 import os
 import shutil
-import tempfile
-import urllib2
-
-from bs4 import BeautifulSoup
 from ..base import (Base, TestBase, B2GDesktopBase)
 from ..mixins import TinderboxMixin, DateMixin
 
@@ -45,7 +41,7 @@ class NightlyFtpMOHandler(Base, B2GDesktopBase, TestBase, TinderboxMixin, DateMi
                 self.suffix = 'dmg'
             elif mozinfo.isWin:
                 self._platform = 'win32'
-                suffix = 'zip'
+                self.suffix = 'zip'
         return self._platform
 
     def prepare_b2g_desktop(self):
