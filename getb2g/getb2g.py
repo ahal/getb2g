@@ -11,7 +11,6 @@ import sys
 
 from base import valid_resources
 from errors import MultipleDeviceResourceException
-from prompt import prompt_resources
 from request import Request
 import prompt
 import mozlog
@@ -27,7 +26,7 @@ def cli(args=sys.argv[1:]):
     parser = optparse.OptionParser(usage='%prog [options]', description=__doc__)
 
     parser.add_option('-d', '--workdir', dest='workdir',
-                      action='store', default=os.path.join(os.getcwd(), 'b2g-workdir'),
+                      action='store', default=None,
                       help='Set up everything in this directory')
     for resource in valid_resources['cli'].difference(valid_resources['default']):
         cmdlet = resource.replace('_', '-')
@@ -56,7 +55,6 @@ def cli(args=sys.argv[1:]):
     log.setLevel(getattr(mozlog, options.log_level))
     prompt.prompt_disabled = options.prompt_disabled
 
-
     # disable/enable localstorage
     if len(args) > 0:
         if args[0] == 'no-store':
@@ -76,8 +74,6 @@ def cli(args=sys.argv[1:]):
 
     # parse the metadata
     metadata = {}
-    if not os.path.isdir(options.workdir):
-        os.makedirs(options.workdir)
     metadata['workdir'] = options.workdir
     for data in options.metadata:
         k, v = data.split('=', 1)
@@ -99,7 +95,7 @@ def cli(args=sys.argv[1:]):
         resources.extend(list(valid_resources['default']))
 
     # prompt for additional resources if needed
-    resources = prompt_resources(valid_resources, resources)
+    resources = prompt.prompt_resources(valid_resources, resources)
 
     # recursively add resources that depend on the resources so far
     if not options.only:
@@ -115,6 +111,26 @@ def cli(args=sys.argv[1:]):
         for res in t_resources:
             if res in valid_resources:
                 add_dependencies(res)
+
+    # set the working directory
+    device = list(set(resources).intersection(valid_resources['device']))
+    if len(device) > 1:
+        raise MultipleDeviceResourceException(*device)
+    elif not device:
+        device = list(set(resources).intersection(valid_resources['cli']))
+    device = device[0]
+
+    if not metadata['workdir']:
+        metadata['workdir'] = os.path.join(os.getcwd(), 'b2g-workdir', device)
+        if os.path.isdir(metadata['workdir']):
+            if prompt.prompt("Resource '%s' already exists in the working directory, do you want to overwrite it?" % device) == "y":
+                log.info("removing '%s'" % metadata['workdir'])
+                shutil.rmtree(metadata['workdir'])
+            else:
+                metadata['workdir'] = prompt.prompt("Enter the full path to a new working directory:", [])
+
+    if not os.path.isdir(metadata['workdir']):
+        os.makedirs(metadata['workdir'])
 
     # build and dispatch the request
     build_request(resources, metadata)
