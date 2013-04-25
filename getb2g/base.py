@@ -36,11 +36,9 @@ class Base(DownloadMixin, StorageMixin):
 
         for res in request.resources:
             if 'prepare_%s' % res in methods:
-                if res in valid_resources:
-                    if all(r not in request.resources for r in valid_resources[res]) \
-                            or any('prepare_%s' % r in methods for r in valid_resources[res]):
-                        handled_resources.append(res)
-                else:
+                parents = get_parent_resources(res)
+                if all(p not in request.resources for p in parents) \
+                        or any('prepare_%s' % p in methods for p in parents):
                     handled_resources.append(res)
         return handled_resources
 
@@ -184,6 +182,14 @@ class B2GDesktopBase(object):
         Prepares the b2g desktop build
         """
     prepare_b2g_desktop.groups = ['device', 'cli']
+
+def get_parent_resources(resource):
+    parents = []
+    for res in valid_resources['all']:
+        if res in valid_resources:
+            if resource in  valid_resources[res]:
+                parents.append(res)
+    return parents
 
 # inspect the abstract base classes and extract the valid resources
 valid_resources = {'all': set([])}

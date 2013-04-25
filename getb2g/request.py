@@ -44,16 +44,21 @@ class Request(object):
         """
         potential_handlers = []
         for handler in handlers.all_handlers:
-            num_res = len(getattr(handlers, handler).handled_resources(self))
-            if num_res > 0:
-                potential_handlers.append((handler, num_res))
+            h_res = getattr(handlers, handler).handled_resources(self)
+            if len(h_res) > 0:
+                potential_handlers.append((handler, h_res))
 
         # sort the handlers based on how many resources they can handle,
         # we want to use as few as possible so resources come from the same place 
         potential_handlers.sort(key=lambda x: x[1], reverse=True)
-        for handler, num_res in potential_handlers:
-            if len(self.resources) > 0:
-                getattr(handlers, handler).execute_request(self)
+
+        # the order of resources is important as resources later in the list might
+        # be affected by values set by resources earlier in the list
+        t_res = self.resources[:]
+        for res in t_res:
+            for handler, h_res in potential_handlers:
+                if res in self.resources and res in h_res:
+                    getattr(handlers, handler).execute_request(self)
         
         if len(self.resources) > 0:
             log.error("Sorry, unable to prepare any of these resources: %s" % ", ".join([r for r in self.resources]))

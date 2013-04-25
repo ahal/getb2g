@@ -57,7 +57,7 @@ def cli(args=sys.argv[1:]):
     prompt.prompt_disabled = options.prompt_disabled
 
 
-    # disable localstorage
+    # disable/enable localstorage
     if len(args) > 0:
         if args[0] == 'no-store':
             db = os.path.expanduser(os.path.join('~', '.getb2g', 'storage.db'))
@@ -74,6 +74,7 @@ def cli(args=sys.argv[1:]):
         else:
             parser.error("Unrecognized argument '%s'" % args[0])
 
+    # parse the metadata
     metadata = {}
     if not os.path.isdir(options.workdir):
         os.makedirs(options.workdir)
@@ -87,27 +88,35 @@ def cli(args=sys.argv[1:]):
         else:
             metadata[k] = v
 
-    resources = set([r for r in valid_resources['all'] if getattr(options, r, False)])
-    device = resources.intersection(valid_resources['device'])
+    # make sure only one device was specified
+    resources = [r for r in valid_resources['all'] if getattr(options, r, False)]
+    device = set(resources).intersection(valid_resources['device'])
     if len(device) > 1:
         raise MultipleDeviceResourceException(*device)
 
+    # add the default resources
     if not options.only:
-        resources.update(valid_resources['default'])
+        resources.extend(list(valid_resources['default']))
+
+    # prompt for additional resources if needed
     resources = prompt_resources(valid_resources, resources)
 
+    # recursively add resources that depend on the resources so far
     if not options.only:
         def add_dependencies(res):
             for r in valid_resources[res]:
+                if r in resources:
+                    continue
                 if res in resources:
-                    resources.add(r)
+                    resources.append(r)
                 if r in valid_resources:
                     add_dependencies(r)
-        t_resources = resources.copy()
+        t_resources = resources[:]
         for res in t_resources:
             if res in valid_resources:
                 add_dependencies(res)
 
+    # build and dispatch the request
     build_request(resources, metadata)
 
 if __name__ == '__main__':

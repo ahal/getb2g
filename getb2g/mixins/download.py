@@ -28,7 +28,7 @@ class DownloadMixin(object):
         auth_handler = urllib2.HTTPBasicAuthHandler(passman)
         opener = urllib2.build_opener(auth_handler)
         urllib2.install_opener(opener)
-    
+
     def get_filename_from_url(self, url):
         parsed = urlparse.urlsplit(url.rstrip('/'))
         if parsed.path != '':
@@ -39,13 +39,16 @@ class DownloadMixin(object):
     def _chunk_report(self, bytes_so_far, total_size):
         percent = float(bytes_so_far) / total_size
         percent = round(percent * 100, 2)
+
         if log.level <= mozlog.INFO:
-            sys.stdout.write('%s(%s%%)' % (self._first_print, str('%0.0f' % percent).zfill(2)))
+            percent = '(%0.0f%%)' % percent
+            sys.stdout.write('%s %s' % (self._first_print, percent))
+            self._first_print = '\b' * (len(percent) + 1)
         if bytes_so_far >= total_size:
             sys.stdout.write('\n')
         sys.stdout.flush()
 
-    
+
     def download_file(self, url, file_name=None, silent=False):
         domain = urlparse.urlparse(url)
         domain = '%s://%s' % (domain.scheme, domain.netloc)
@@ -86,9 +89,14 @@ class DownloadMixin(object):
             dest = os.path.join(workdir, file_name, self.get_filename_from_url(url))
         else:
             dest = os.path.join(workdir, file_name)
-           
+
         local_file = open(dest, 'wb')
-        self._first_print = 'GetB2G INFO | downloading %s ' % url
+
+        # format the message without actually logging it
+        fn, lno, func = log.findCaller()
+        record = log.makeRecord(log.name, mozlog.INFO, fn, lno, 'downloading %s', url, None)
+        h = log.handlers[0]
+        self._first_print = h.format(record)
         while True:
             chunk = response.read(self._CHUNK_SIZE)
             if not chunk:
@@ -99,6 +107,5 @@ class DownloadMixin(object):
 
             if total_size and not silent:
                 self._chunk_report(bytes_so_far, total_size)
-                self._first_print = '\b\b\b\b\b'
         local_file.close()
         return dest

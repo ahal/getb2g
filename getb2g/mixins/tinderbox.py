@@ -1,3 +1,4 @@
+import os
 import tempfile
 
 from bs4 import BeautifulSoup
