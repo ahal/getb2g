@@ -52,7 +52,7 @@ def cli(args=sys.argv[1:]):
                       action='store_true', default=False,
                       help='Store any usernames and passwords I enter for this session for '
                            'later use. Note: passwords will not be encrypted')
-    parser.add_option('--log-level', dest='log_level', action='store',
+    parser.add_option('-l', '--log-level', dest='log_level', action='store',
                       type='choice', default='INFO',
                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                       help='Only print messages at this log level')

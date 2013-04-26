@@ -52,6 +52,9 @@ Here are some examples of other command lines you can use:
     # set up a b2g gecko build from a specific build directory on ftp.mozilla.org
     getb2g --prepare-gecko --metadata build_dir='https://ftp.mozilla.org/pub/mozilla.org/b2g/tinderbox-builds/mozilla-central-ics_armv7a_gecko/1366715435/'
 
+    # set up an eng variant of a inari build
+    getb2g --prepare-inari --metadata variant=eng
+
     # provide a user name and password and never get prompted
     getb2g --prepare-emulator --no-prompt --metadata user=<username> --metadata password=<password>
 

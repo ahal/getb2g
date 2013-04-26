@@ -7,10 +7,10 @@ from ..prompt import prompt
 
 import mozfile
 
-__all__ = ['ReleaseMOHandler']
+__all__ = ['ReleasesHandler']
 
 
-class ReleaseMOHandler(Base, EmulatorBase, DateMixin):
+class ReleasesHandler(Base, EmulatorBase, DateMixin):
     """
     Handles resources from releases.mozilla.com
     """

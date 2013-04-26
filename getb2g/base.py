@@ -14,9 +14,6 @@ import mozinfo
 import mozlog
 log = mozlog.getLogger('GetB2G')
 
-__all__ = ['Base', 'GeckoBase', 'SymbolsBase', 'EmulatorBase', 'TestBase', 'PandaBase',
-           'UnagiBase', 'B2GDesktopBase', 'valid_resources']
-
 class Base(DownloadMixin, StorageMixin):
     __metaclass__ = ABCMeta
     _default_busybox_url = 'http://busybox.net/downloads/binaries/latest/'
@@ -60,6 +57,7 @@ class Base(DownloadMixin, StorageMixin):
             except:
                 log.warning("%s encountered an error while attempting to prepare '%s'" % (cls.__name__, resource))
                 log.debug(traceback.format_exc())
+                break
 
     def prepare_busybox(self):
         """
@@ -101,7 +99,7 @@ class SymbolsBase(object):
         """
         Prepares the symbols directory
         """
-    prepare_symbols.groups = ['gecko', 'unagi', 'panda']
+    prepare_symbols.groups = ['gecko', 'unagi', 'panda', 'leo', 'hamachi', 'inari', 'otoro']
 
     def prepare_minidump_stackwalk(self, url=None):
         """
@@ -182,6 +180,42 @@ class B2GDesktopBase(object):
         Prepares the b2g desktop build
         """
     prepare_b2g_desktop.groups = ['device', 'cli']
+
+class LeoBase(object):
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def prepare_leo(self):
+        """
+        Prepares the leo build
+        """
+    prepare_leo.groups = ['device', 'cli']
+
+class HamachiBase(object):
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def prepare_hamachi(self):
+        """
+        Prepares the hamachi build
+        """
+    prepare_hamachi.groups = ['device', 'cli']
+
+class InariBase(object):
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def prepare_inari(self):
+        """
+        Prepares the inari build
+        """
+    prepare_inari.groups = ['device', 'cli']
+
+class OtoroBase(object):
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def prepare_otoro(self):
+        """
+        Prepares the otoro build
+        """
+    prepare_otoro.groups = ['device', 'cli']
 
 def get_parent_resources(resource):
     parents = []

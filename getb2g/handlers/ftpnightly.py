@@ -7,9 +7,9 @@ import mozfile
 import mozinfo
 import mozinstall
 
-__all__ = ['NightlyFtpMOHandler']
+__all__ = ['FtpNightlyHandler']
 
-class NightlyFtpMOHandler(Base, B2GDesktopBase, TestBase, TinderboxMixin, DateMixin):
+class FtpNightlyHandler(Base, B2GDesktopBase, TestBase, TinderboxMixin, DateMixin):
     """
     Handles nightly builds from ftp.m.o/pub/mozilla.org/b2g/nightly
     """
@@ -22,6 +22,11 @@ class NightlyFtpMOHandler(Base, B2GDesktopBase, TestBase, TinderboxMixin, DateMi
     def url(self):
         if self._url:
             return self._url
+
+        if 'build_dir' in self.metadata:
+            self._url = self.metadata['build_dir']
+            return self._url
+
         url = '%s/%s-%s/' % (self._base_url, '%s', self.branch)
         self._url = self.get_date_url(url)
         return self._url
@@ -45,16 +50,16 @@ class NightlyFtpMOHandler(Base, B2GDesktopBase, TestBase, TinderboxMixin, DateMi
         return self._platform
 
     def prepare_b2g_desktop(self):
-        url = self.get_resource_url(lambda x: x.string.startswith(self.device) and
-                                                x.string.endswith('%s.%s' % (self.platform, self.suffix)))
+        url = self.get_resource_url(lambda x: x.startswith(self.device) and
+                                                x.endswith('%s.%s' % (self.platform, self.suffix)))
         file_name = self.download_file(url)
         mozinstall.install(file_name, self.metadata['workdir'])
         os.remove(file_name)
 
 
     def prepare_tests(self):
-        url = self.get_resource_url(lambda x: x.string.startswith(self.device) and
-                                                x.string.endswith('%s.tests.zip' % self.platform))
+        url = self.get_resource_url(lambda x: x.startswith(self.device) and
+                                                x.endswith('%s.tests.zip' % self.platform))
         file_name = self.download_file(url)
         path = os.path.join(self.metadata['workdir'], 'tests')
         if os.path.isdir(path):
