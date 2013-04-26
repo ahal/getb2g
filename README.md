@@ -18,10 +18,10 @@ Install getb2g:
 
     pip install getb2g
 
-Note on python packages: getb2g has several dependent packages that will also be installed alongside it. Doing the above will install 
-all those packages in your global package index. This makes it easy to get into situations where you have several libraries that depend 
-on different versions of the same package. It is easy to get into python version hell. To avoid hell, I'd recommend using a virtual 
-environment. See [virtualenv](https://pypi.python.org/pypi/virtualenv) and [virtualenvwrapper](https://bitbucket.org/dhellmann/virtualenvwrapper) 
+Note on python packages: getb2g has several dependent packages that will also be installed alongside it. Doing the above will install
+all those packages in your global package index. This makes it easy to get into situations where you have several libraries that depend
+on different versions of the same package. It is easy to get into python version hell. To avoid hell, I'd recommend using a virtual
+environment. See [virtualenv](https://pypi.python.org/pypi/virtualenv) and [virtualenvwrapper](https://bitbucket.org/dhellmann/virtualenvwrapper)
 (an optional tool to help manage virtual environments) for more details.
 
 # Usage
@@ -60,12 +60,8 @@ Here are some examples of other command lines you can use:
 Many of the resources require authentication because their packages contain proprietary software. If you are attempting to download one such resource, you
 will be prompted to enter the proper credentials. If you do not know the credentials, I apologize.
 
-Once you have successfully entered credentials, they will be stored so you won't have to enter them again in the future. If you want to disable this
-behaviour permanently, just run:
+By default, your username and password will not be saved. If you want getb2g to remember your passwords, simply use the --store option.
+With this set, any passwords you enter during the session will be stored locally for later use. Note that passwords are not encrypted
+before hand, so anyone with access to your computer may be able to see them.
 
-    getb2g no-store
-
-To re-enable:
-
-    getb2g store
-
+If you want getb2g to forget everything you previously stored, simply run 'rm ~/.getb2g/storage.db'

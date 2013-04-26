@@ -19,9 +19,8 @@ class StorageMixin(object):
         self.conn.close()
 
     def save_auth(self, url, user, password):
-        if os.path.isfile(os.path.join(os.path.dirname(self.db), 'no-store')):
+        if not self.metadata['store']:
             return
-
         self.cur.execute('insert into passwords values (?, ?, ?)', (url, user, base64.b64encode(password)))
 
     def load_auth(self, url):

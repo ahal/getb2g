@@ -7,6 +7,7 @@ interactive session designed to help figure out what you need.
 
 import optparse
 import os
+import shutil
 import sys
 
 from base import valid_resources
@@ -47,6 +48,10 @@ def cli(args=sys.argv[1:]):
                       action='store_true', default=False,
                       help='Only prepare resources I explicitly specify (either by '
                            'command line or prompt)')
+    parser.add_option('--store', dest='store',
+                      action='store_true', default=False,
+                      help='Store any usernames and passwords I enter for this session for '
+                           'later use. Note: passwords will not be encrypted')
     parser.add_option('--log-level', dest='log_level', action='store',
                       type='choice', default='INFO',
                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
@@ -55,26 +60,10 @@ def cli(args=sys.argv[1:]):
     log.setLevel(getattr(mozlog, options.log_level))
     prompt.prompt_disabled = options.prompt_disabled
 
-    # disable/enable localstorage
-    if len(args) > 0:
-        if args[0] == 'no-store':
-            db = os.path.expanduser(os.path.join('~', '.getb2g', 'storage.db'))
-            if os.path.isfile(db):
-                os.remove(db)
-            f = open(os.path.join(os.path.dirname(db), 'no-store'), 'w')
-            f.close()
-            return
-        elif args[0] == 'store':
-            store = os.path.join(os.path.expanduser(os.path.join('~', '.getb2g', 'no-store')))
-            if os.path.isfile(store):
-                os.remove(store)
-            return
-        else:
-            parser.error("Unrecognized argument '%s'" % args[0])
-
     # parse the metadata
     metadata = {}
     metadata['workdir'] = options.workdir
+    metadata['store'] = options.store
     for data in options.metadata:
         k, v = data.split('=', 1)
         if k in metadata:
