@@ -14,6 +14,7 @@ class PvtBPubTinderboxHandler(Base, UnagiBase, PandaBase, SymbolsBase, Tinderbox
     Handles resources from pvtbuilds.mozilla.org
     """
     _base_url = 'https://pvtbuilds.mozilla.org/pub/mozilla.org/b2g/tinderbox-builds/'
+    _device_names = { 'unagi': 'unagi-eng', }
 
     def prepare_symbols(self):
         url = self.get_resource_url(lambda x: x.startswith('b2g') and
