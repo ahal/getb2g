@@ -3,28 +3,26 @@ import shutil
 import tempfile
 
 from bs4 import BeautifulSoup
-from ..base import (Base, UnagiBase, PandaBase, SymbolsBase)
+from ..base import (Base, EmulatorBase, UnagiBase, PandaBase, SymbolsBase)
 from ..mixins import TinderboxMixin
 
 import mozfile
 __all__ = ['PvtBPubTinderboxHandler']
 
-class PvtBPubTinderboxHandler(Base, UnagiBase, PandaBase, SymbolsBase, TinderboxMixin):
+class PvtBPubTinderboxHandler(Base, EmulatorBase, UnagiBase, PandaBase, SymbolsBase, TinderboxMixin):
     """
     Handles resources from pvtbuilds.mozilla.org
     """
     _base_url = 'https://pvtbuilds.mozilla.org/pub/mozilla.org/b2g/tinderbox-builds/'
-    _device_names = { 'unagi': 'unagi-eng', }
+    _device_names = { 'unagi': 'unagi-eng',
+                      'emulator': 'generic', }
+
+    def prepare_tests(self):
+        self.download_extract(lambda x: x.endswith('tests.zip'), outdir='tests')
 
     def prepare_symbols(self):
-        url = self.get_resource_url(lambda x: x.startswith('b2g') and
-                                                        x.endswith('crashreporter-symbols.zip'))
-        file_name = self.download_file(url)
-        extract_dir = os.path.join(os.path.dirname(file_name), 'symbols')
-        if os.path.isdir(extract_dir):
-            shutil.rmtree(extract_dir)
-        mozfile.extract(file_name, extract_dir)
-        os.remove(file_name)
+        self.download_extract(lambda x: x.startswith('b2g') and
+                                        x.endswith('crashreporter-symbols.zip'))
 
     def prepare_panda(self):
         url = self.get_resource_url(lambda x: x == 'boot.tar.bz2')
@@ -53,7 +51,7 @@ class PvtBPubTinderboxHandler(Base, UnagiBase, PandaBase, SymbolsBase, Tinderbox
 
         url = self.get_resource_url(lambda x: x == 'build.prop')
         self.download_file(url)
-        
+
         url = self.get_resource_url(lambda x: x == 'sources.xml')
         self.download_file(url)
 
@@ -84,6 +82,12 @@ class PvtBPubTinderboxHandler(Base, UnagiBase, PandaBase, SymbolsBase, Tinderbox
 
         url = self.get_resource_url(lambda x: x == 'build.prop')
         self.download_file(url)
-        
+
         url = self.get_resource_url(lambda x: x == 'sources.xml')
         self.download_file(url)
+
+    def prepare_emulator(self):
+        self.download_extract(lambda x: x == 'emulator.tar.gz', outdir='emulator')
+        self.download_extract(lambda x: x == 'gaia.zip')
+        self.download_file(lambda x: x == 'sources.xml')
+        self.download_file(lambda x: x == 'build.prop')

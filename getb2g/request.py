@@ -1,6 +1,7 @@
 from base import valid_resources
 from errors import InvalidResourceException, MultipleDeviceResourceException
 import handlers
+import pprint
 
 import mozlog
 log = mozlog.getLogger('GetB2G')
@@ -35,7 +36,9 @@ class Request(object):
 
         # sort the handlers based on how many resources they can handle,
         # we want to use as few as possible so resources come from the same place 
+        pp = pprint.PrettyPrinter(indent=4)
         potential_handlers.sort(key=lambda x: x[1], reverse=True)
+        log.debug("potential handlers:\n%s" % pp.pformat(potential_handlers))
 
         # the order of resources is important as resources later in the list might
         # be affected by values set by resources earlier in the list

@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import urllib2
 import urlparse
@@ -6,6 +7,7 @@ import urlparse
 from ..errors import MissingDataException
 from ..prompt import prompt_user_pass
 
+import mozfile
 import mozlog
 log = mozlog.getLogger('GetB2G')
 
@@ -48,8 +50,36 @@ class DownloadMixin(object):
             sys.stdout.write('\n')
         sys.stdout.flush()
 
+    def download_extract(self, url, file_name=None, silent=False, outdir=None):
+        file_name = self.download_file(url, file_name=file_name, silent=silent)
+        files = mozfile.extract(file_name)
+        os.remove(file_name)
+
+        if not outdir and len(files) > 1:
+            name = os.path.basename(file_name)
+            for suffix in ('.zip', '.tar.gz', '.tar.bz2'):
+                if name.endswith(suffix):
+                     outdir = name[:-len(suffix)]
+                     break
+
+        if outdir:
+            outdir = os.path.join(self.metadata['workdir'], outdir)
+            if os.path.isdir(outdir):
+                shutil.rmtree(outdir)
+
+            if len(files) == 1:
+                shutil.move(files[0], outdir)
+            elif len(files) > 1:
+                os.makedirs(outdir)
+                for f in files:
+                    shutil.move(f, os.path.join(outdir, os.path.basename(f)))
+        log.debug("extracted '%s' to '%s'" % (file_name, outdir or files[0]))
+
 
     def download_file(self, url, file_name=None, silent=False):
+        if hasattr(url, '__call__'):
+            url = self.get_resource_url(url)
+
         domain = urlparse.urlparse(url)
         domain = '%s://%s' % (domain.scheme, domain.netloc)
         auth = self.load_auth(domain)

@@ -35,7 +35,8 @@ class Base(DownloadMixin, StorageMixin):
             if 'prepare_%s' % res in methods:
                 parents = get_parent_resources(res)
                 if all(p not in request.resources for p in parents) \
-                        or any('prepare_%s' % p in methods for p in parents):
+                        or any('prepare_%s' % p in methods for p in parents) \
+                        or res in valid_resources['device']:
                     handled_resources.append(res)
         return handled_resources
 
@@ -88,7 +89,7 @@ class GeckoBase(object):
         """
         Prepares the gecko directory
         """
-    prepare_gecko.groups = ['emulator', 'cli']
+    prepare_gecko.groups = ['cli']
 
 class SymbolsBase(object):
     __metaclass__ = ABCMeta
@@ -129,7 +130,7 @@ class TestBase(object):
         """
         Prepares the tests bundle
         """
-    prepare_tests.groups = ['gecko', 'b2g_desktop']
+    prepare_tests.groups = ['gecko', 'emulator', 'b2g_desktop']
 
     def prepare_xre(self, url=None):
         """
@@ -152,7 +153,7 @@ class EmulatorBase(object):
         """
         Prepares the emulator package
         """
-    prepare_emulator.groups = ['device', 'cli']
+    prepare_emulator.groups = ['device', 'cli', 'gecko']
 
 class UnagiBase(object):
     __metaclass__ = ABCMeta
@@ -221,7 +222,7 @@ def get_parent_resources(resource):
     parents = []
     for res in valid_resources['all']:
         if res in valid_resources:
-            if resource in  valid_resources[res]:
+            if resource in valid_resources[res]:
                 parents.append(res)
     return parents
 
