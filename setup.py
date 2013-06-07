@@ -14,7 +14,7 @@ deps = ['BeautifulSoup4',
         'mozinfo',
         'mozinstall',
         'mozlog',
-        'mozfile>=0.5',]
+        'mozfile>=0.9',]
 # take description from README
 here = os.path.dirname(os.path.abspath(__file__))
 try:

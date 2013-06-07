@@ -50,20 +50,12 @@ class FtpNightlyHandler(Base, B2GDesktopBase, TestBase, TinderboxMixin, DateMixi
         return self._platform
 
     def prepare_b2g_desktop(self):
-        url = self.get_resource_url(lambda x: x.startswith(self.device) and
-                                                x.endswith('%s.%s' % (self.platform, self.suffix)))
-        file_name = self.download_file(url)
+        file_name = self.download_file(lambda x: x.startswith(self.device)
+                                        and x.endswith('%s.%s' % (self.platform, self.suffix)))
         mozinstall.install(file_name, self.metadata['workdir'])
         os.remove(file_name)
 
 
     def prepare_tests(self):
-        url = self.get_resource_url(lambda x: x.startswith(self.device) and
-                                                x.endswith('%s.tests.zip' % self.platform))
-        file_name = self.download_file(url)
-        path = os.path.join(self.metadata['workdir'], 'tests')
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-        mozfile.extract(file_name, path)
-        os.remove(file_name)
-
+        self.download_extract(lambda x: x.startswith(self.device) and
+                                        x.endswith('%s.tests.zip' % self.platform), outdir='tests')

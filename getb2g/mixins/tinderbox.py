@@ -67,7 +67,7 @@ class TinderboxMixin(object):
             return self._device
 
         self._device = self.metadata.get('device')
-        if self._device_names:
+        if self._device_names and self._device in self._device_names:
             self._device = self._device_names.get(self._device)
         if self.metadata.get('variant') == 'eng' and not self._device.endswith('eng'):
             self._device = '%s-eng' % self._device

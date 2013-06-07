@@ -28,9 +28,4 @@ class ReleasesHandler(Base, EmulatorBase, DateMixin):
         url = '%s/%s/' % (self._base_url, '%s')
         url = self.get_date_url(url, lambda x: x.string.startswith('emulator-arm')
                                                         and x.string.endswith('tar.gz'))
-        file_name = self.download_file(url)
-        extract_dir = os.path.join(self.metadata['workdir'], 'b2g-distro')
-        if os.path.isdir(extract_dir):
-            shutil.rmtree(extract_dir)
-        mozfile.extract(file_name)
-        os.remove(file_name)
+        self.download_extract(url, outdir='emulator')

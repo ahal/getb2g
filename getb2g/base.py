@@ -130,7 +130,7 @@ class TestBase(object):
         """
         Prepares the tests bundle
         """
-    prepare_tests.groups = ['gecko', 'emulator', 'b2g_desktop']
+    prepare_tests.groups = ['gecko', 'emulator', 'b2g_desktop', 'panda']
 
     def prepare_xre(self, url=None):
         """

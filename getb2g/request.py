@@ -36,7 +36,7 @@ class Request(object):
 
         # sort the handlers based on how many resources they can handle,
         # we want to use as few as possible so resources come from the same place 
-        pp = pprint.PrettyPrinter(indent=4)
+        pp = pprint.PrettyPrinter(indent=2)
         potential_handlers.sort(key=lambda x: x[1], reverse=True)
         log.debug("potential handlers:\n%s" % pp.pformat(potential_handlers))
 

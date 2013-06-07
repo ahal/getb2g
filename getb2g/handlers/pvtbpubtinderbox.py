@@ -3,13 +3,13 @@ import shutil
 import tempfile
 
 from bs4 import BeautifulSoup
-from ..base import (Base, EmulatorBase, UnagiBase, PandaBase, SymbolsBase)
+from ..base import (Base, EmulatorBase, UnagiBase, PandaBase, SymbolsBase, TestBase)
 from ..mixins import TinderboxMixin
 
 import mozfile
 __all__ = ['PvtBPubTinderboxHandler']
 
-class PvtBPubTinderboxHandler(Base, EmulatorBase, UnagiBase, PandaBase, SymbolsBase, TinderboxMixin):
+class PvtBPubTinderboxHandler(Base, EmulatorBase, UnagiBase, PandaBase, SymbolsBase, TestBase, TinderboxMixin):
     """
     Handles resources from pvtbuilds.mozilla.org
     """
@@ -18,42 +18,21 @@ class PvtBPubTinderboxHandler(Base, EmulatorBase, UnagiBase, PandaBase, SymbolsB
                       'emulator': 'generic', }
 
     def prepare_tests(self):
-        self.download_extract(lambda x: x.endswith('tests.zip'), outdir='tests')
+        self.download_extract(lambda x: x.startswith('b2g') and
+                                        x.endswith('tests.zip'), outdir='tests')
 
     def prepare_symbols(self):
         self.download_extract(lambda x: x.startswith('b2g') and
-                                        x.endswith('crashreporter-symbols.zip'))
+                                        x.endswith('crashreporter-symbols.zip'), outdir='symbols')
 
     def prepare_panda(self):
-        url = self.get_resource_url(lambda x: x == 'boot.tar.bz2')
-        file_name = self.download_file(url)
-        mozfile.extract(file_name)
-        os.remove(file_name)
-
-        url = self.get_resource_url(lambda x: x == 'system.tar.bz2')
-        file_name = self.download_file(url)
-        mozfile.extract(file_name)
-        os.remove(file_name)
-
-        url = self.get_resource_url(lambda x: x == 'userdata.tar.bz2')
-        file_name = self.download_file(url)
-        mozfile.extract(file_name)
-        os.remove(file_name)
-
-        url = self.get_resource_url(lambda x: x == 'gaia-tests.zip')
-        test_dir = os.path.join(self.metadata['workdir'], 'tests')
-        if os.path.isdir(test_dir):
-            shutil.rmtree(test_dir)
-        os.makedirs(test_dir)
-        file_name = self.download_file(url, 'tests')
-        mozfile.extract(file_name)
-        os.remove(file_name)
-
-        url = self.get_resource_url(lambda x: x == 'build.prop')
-        self.download_file(url)
-
-        url = self.get_resource_url(lambda x: x == 'sources.xml')
-        self.download_file(url)
+        self.download_extract(lambda x: x == 'boot.tar.bz2')
+        self.download_extract(lambda x: x == 'system.tar.bz2')
+        self.download_extract(lambda x: x == 'userdata.tar.bz2')
+        self.download_extract(lambda x: x == 'gaia.zip')
+        self.download_extract(lambda x: x == 'gaia-tests.zip')
+        self.download_file(lambda x: x == 'build.prop')
+        self.download_file(lambda x: x == 'sources.xml')
 
         # license
         doc = self.download_file(self.url, tempfile.mkstemp()[1], silent=True)
@@ -65,26 +44,11 @@ class PvtBPubTinderboxHandler(Base, EmulatorBase, UnagiBase, PandaBase, SymbolsB
         license.close()
 
     def prepare_unagi(self):
-        url = self.get_resource_url(lambda x: x.startswith('b2g') and
-                                                         x.endswith('.tar.gz'))
-        file_name = self.download_file(url)
-        files = mozfile.extract(file_name)
-        os.remove(file_name)
-        mvdir = os.path.join(self.metadata['workdir'], 'gecko')
-        if os.path.isdir(mvdir):
-            shutil.rmtree(mvdir)
-        shutil.move(files[0], mvdir)
-
-        url = self.get_resource_url(lambda x: x == 'unagi.zip')
-        file_name = self.download_file(url)
-        mozfile.extract(file_name)
-        os.remove(file_name)
-
-        url = self.get_resource_url(lambda x: x == 'build.prop')
-        self.download_file(url)
-
-        url = self.get_resource_url(lambda x: x == 'sources.xml')
-        self.download_file(url)
+        self.download_extract(lambda x: x.startswith('b2g') and
+                                        x.endswith('.tar.gz'), outdir='b2g')
+        self.download_extract(lambda x: x == 'unagi.zip', outdir='unagi')
+        self.download_file(lambda x: x == 'build.prop')
+        self.download_file(lambda x: x == 'sources.xml')
 
     def prepare_emulator(self):
         self.download_extract(lambda x: x == 'emulator.tar.gz', outdir='emulator')

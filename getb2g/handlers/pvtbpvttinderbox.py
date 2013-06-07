@@ -18,26 +18,14 @@ class PvtBPvtTinderboxHandler(Base, LeoBase, HamachiBase, InariBase, SymbolsBase
                       'hamachi': 'hamachi-eng' }
 
     def prepare_symbols(self):
-        url = self.get_resource_url(lambda x: x.startswith('b2g') and
-                                                        x.endswith('crashreporter-symbols.zip'))
-        file_name = self.download_file(url)
-        extract_dir = os.path.join(os.path.dirname(file_name), 'symbols')
-        if os.path.isdir(extract_dir):
-            shutil.rmtree(extract_dir)
-        mozfile.extract(file_name, extract_dir)
-        os.remove(file_name)
+        self.download_extract(lambda x: x.startswith('b2g') and
+                                        x.endswith('crashreporter-symbols.zip'), outdir='symbols')
 
     def _prepare_device(self, device):
-        url = self.get_resource_url(lambda x: x == '%s.zip' % device)
-        file_name = self.download_file(url)
-        mozfile.extract(file_name)
-        os.remove(file_name)
-
-        url = self.get_resource_url(lambda x: x == 'build.prop')
-        self.download_file(url)
-
-        url = self.get_resource_url(lambda x: x == 'sources.xml')
-        self.download_file(url)
+        self.download_extract(lambda x: x == '%s.zip' % device, outdir=device)
+        self.download_extract(lambda x: x == 'gaia.zip')
+        self.download_file(lambda x: x == 'build.prop')
+        self.download_file(lambda x: x == 'sources.xml')
 
     def prepare_leo(self):
         self._prepare_device('leo')
