@@ -7,8 +7,7 @@ from scratch which can sometimes be a large barrier to entry for those not famil
 
 Install setuptools if you don't have it already:
 
-    curl -O http://python-distribute.org/distribute_setup.py
-    python distribute_setup.py
+    wget https://bitbucket.org/pypa/setuptools/raw/0.7.6/ez_setup.py -O - | python
 
 Install pip if you don't have it already:
 
