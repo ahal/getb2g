@@ -82,15 +82,6 @@ class Base(DownloadMixin, StorageMixin):
             log.error("Couldn't find a busybox binary for platform '%s'" % platform)
     prepare_busybox.groups = ['default']
 
-class GeckoBase(object):
-    __metaclass__ = ABCMeta
-    @abstractmethod
-    def prepare_gecko(self):
-        """
-        Prepares the gecko directory
-        """
-    prepare_gecko.groups = ['cli']
-
 class SymbolsBase(object):
     __metaclass__ = ABCMeta
     _default_minidump_stackwalk_url = 'https://hg.mozilla.org/build/tools/file/tip/breakpad/%s/minidump_stackwalk'
@@ -100,7 +91,7 @@ class SymbolsBase(object):
         """
         Prepares the symbols directory
         """
-    prepare_symbols.groups = ['gecko', 'unagi', 'panda', 'leo', 'hamachi', 'inari', 'otoro']
+    prepare_symbols.groups = ['unagi', 'panda', 'leo', 'hamachi', 'inari', 'otoro']
 
     def prepare_minidump_stackwalk(self, url=None):
         """
@@ -130,7 +121,7 @@ class TestBase(object):
         """
         Prepares the tests bundle
         """
-    prepare_tests.groups = ['gecko', 'emulator', 'b2g_desktop', 'panda']
+    prepare_tests.groups = ['emulator', 'b2g_desktop', 'panda']
 
     def prepare_xre(self, url=None):
         """
@@ -153,7 +144,7 @@ class EmulatorBase(object):
         """
         Prepares the emulator package
         """
-    prepare_emulator.groups = ['device', 'cli', 'gecko']
+    prepare_emulator.groups = ['device', 'cli']
 
 class UnagiBase(object):
     __metaclass__ = ABCMeta
