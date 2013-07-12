@@ -134,7 +134,6 @@ class TestBase(object):
             shutil.rmtree(path)
         files = mozfile.extract(file_name)
         os.remove(file_name)
-        shutil.move(files[0], path)
     prepare_xre.groups = ['tests']
 
 class EmulatorBase(object):
